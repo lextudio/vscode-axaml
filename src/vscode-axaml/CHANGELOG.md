@@ -1,5 +1,11 @@
 # Change Log
 
+## [11.0.51] - 26 August 2025
+
+Highlights:
+
+- Minor improvements on preview error handling and look and feel.
+
 ## [11.0.50] - 24 August 2025
 
 Highlights:
