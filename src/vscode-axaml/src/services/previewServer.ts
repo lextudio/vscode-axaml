@@ -24,6 +24,7 @@ export class PreviewServer implements IPreviewServer {
 		logger.info(`PreviewServer.start ${this._assemblyName}`);
 
 		this._onReady = new EventDispatcher<IPreviewServer, void>(); // Remove all subscribers
+		this._onError = new EventDispatcher<IPreviewServer, Error>();
 
 		this._server.listen(this._port, this._host, () =>
 			logger.info(`Preview server listening on port ${this._port}`)
@@ -141,9 +142,18 @@ export class PreviewServer implements IPreviewServer {
 
 	_onMessage = new EventDispatcher<IPreviewServer, Buffer>();
 	_onReady = new EventDispatcher<IPreviewServer, void>();
+	_onError = new EventDispatcher<IPreviewServer, Error>();
 
 	public get onReady(): IEvent<IPreviewServer, void> {
 		return this._onReady.asEvent();
+	}
+
+	public get onError(): IEvent<IPreviewServer, Error> {
+		return this._onError.asEvent();
+	}
+
+	dispatchError(signal: string) {
+		this._onError.dispatch(this, new Error(`Preview server error: ${signal}`));
 	}
 
 	_server: net.Server;

@@ -99,8 +99,12 @@ export class PreviewerProcess implements Command {
 				reject(data.toString());
 			});
 
-			previewer.on("close", (code) => {
-				util.logger.info(`Previewer process exited with code ${code}`);
+			previewer.on("close", (code, signal) => {
+				util.logger.info(`Previewer process exited with code ${code} and signal ${signal}`);
+				if (signal === "SIGABRT") {
+					util.logger.info(`Previewer process was aborted`);
+					server.dispatchError(signal);
+				}
 			});
 		});
 	}
