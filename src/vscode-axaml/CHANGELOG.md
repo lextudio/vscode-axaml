@@ -1,5 +1,12 @@
 # Change Log
 
+## [11.0.52] - 5 September 2025
+
+Highlights:
+
+- Outline now shows control names, content, and key attributes, with improved classification and icons.
+- Long names/content are truncated for readability;
+
 ## [11.0.51] - 26 August 2025
 
 Highlights:
