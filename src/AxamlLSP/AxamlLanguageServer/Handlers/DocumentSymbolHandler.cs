@@ -17,6 +17,11 @@ namespace AvaloniaLanguageServer.Handlers;
 /// </summary>
 public class DocumentSymbolHandler : DocumentSymbolHandlerBase
 {
+    /// <summary>
+    /// Maximum length for label/content in outline. Can be changed for customization.
+    /// </summary>
+    public static int MaxLabelLength { get; set; } = 32;
+
     private readonly Workspace _workspace;
     private readonly DocumentSelector _documentSelector;
     private readonly ILogger<DocumentSymbolHandler> _logger;
@@ -70,7 +75,8 @@ public class DocumentSymbolHandler : DocumentSymbolHandlerBase
                     Start = ev.TagStart,
                     NameTokenStart = ev.NameStart < 0 ? ev.TagStart : ev.NameStart,
                     NameTokenEnd = ev.NameEnd < 0 || ev.NameEnd < ev.NameStart ? (ev.NameStart < 0 ? ev.TagStart + ev.TagName.Length : ev.NameStart + ev.TagName.Length) : ev.NameEnd,
-                    End = ev.TagEnd
+                    End = ev.TagEnd,
+                    Attributes = ev.Attributes
                 };
                 if (ev.IsSelfClosing)
                     AttachNode(node, stack, roots);
@@ -131,13 +137,48 @@ public class DocumentSymbolHandler : DocumentSymbolHandlerBase
         var kind = GuessKind(node.TagName);
         string displayName = node.TagName;
         string? detail = null;
-        if (kind == SymbolKind.Property && node.TagName.Contains('.'))
+
+        // Attribute-based label enhancement with truncation
+        string Truncate(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return s;
+            int maxLen = MaxLabelLength;
+            return s.Length > maxLen ? s.Substring(0, maxLen) + "..." : s;
+        }
+
+        if (node.TagName.Contains('.'))
         {
             var idx = node.TagName.LastIndexOf('.');
             var typePart = node.TagName.Substring(0, idx);
             var propPart = node.TagName[(idx + 1)..];
-            displayName = propPart;
-            detail = typePart;
+            displayName = Truncate(propPart);
+            detail = Truncate(typePart);
+        }
+        else if (node.Attributes != null)
+        {
+            // x:Name or Name
+            if (node.Attributes.TryGetValue("x:Name", out var xname) && !string.IsNullOrWhiteSpace(xname))
+                displayName += $" ({Truncate(xname)})";
+            else if (node.Attributes.TryGetValue("Name", out var name) && !string.IsNullOrWhiteSpace(name))
+                displayName += $" ({Truncate(name)})";
+            // Content/Text/Header
+            else if (node.Attributes.TryGetValue("Content", out var content) && !string.IsNullOrWhiteSpace(content))
+                displayName += $" \"{Truncate(content)}\"";
+            else if (node.Attributes.TryGetValue("Text", out var text) && !string.IsNullOrWhiteSpace(text))
+                displayName += $" \"{Truncate(text)}\"";
+            else if (node.Attributes.TryGetValue("Header", out var header) && !string.IsNullOrWhiteSpace(header))
+                displayName += $" \"{Truncate(header)}\"";
+            // Key/DataType for styles/templates
+            if (node.Attributes.TryGetValue("x:Key", out var key) && !string.IsNullOrWhiteSpace(key))
+                detail = detail == null ? $"Key: {Truncate(key)}" : detail + $", Key: {Truncate(key)}";
+            if (node.Attributes.TryGetValue("DataType", out var dtype) && !string.IsNullOrWhiteSpace(dtype))
+                detail = detail == null ? $"DataType: {Truncate(dtype)}" : detail + $", DataType: {Truncate(dtype)}";
+            // Setter Property/Value
+            if (node.TagName == "Setter")
+            {
+                if (node.Attributes.TryGetValue("Property", out var prop) && node.Attributes.TryGetValue("Value", out var val))
+                    displayName += $" {Truncate(prop)}={Truncate(val)}";
+            }
         }
 
         return new DocumentSymbol
@@ -159,23 +200,62 @@ public class DocumentSymbolHandler : DocumentSymbolHandlerBase
         };
     }
 
+    // Classification sets for AXAML element types
+    private static readonly HashSet<string> LayoutControls = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Grid", "StackPanel", "DockPanel", "Border", "Canvas", "WrapPanel", "Panel"
+    };
+    private static readonly HashSet<string> InteractiveControls = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Button", "ToggleButton", "CheckBox", "RadioButton", "Slider", "MenuItem", "ComboBoxItem"
+    };
+    private static readonly HashSet<string> TextControls = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "TextBlock", "TextBox", "Label"
+    };
+    private static readonly HashSet<string> CollectionControls = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "ListBox", "ItemsControl", "ComboBox", "TreeView", "DataGrid"
+    };
+    private static readonly HashSet<string> MediaControls = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Image", "MediaElement"
+    };
+    private static readonly HashSet<string> TemplateElements = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Style", "ControlTemplate", "DataTemplate", "ItemsPanelTemplate"
+    };
+    private static readonly HashSet<string> ResourceElements = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "ResourceDictionary"
+    };
+
     private static SymbolKind GuessKind(string tagName)
     {
         if (tagName.Contains('.'))
             return SymbolKind.Property; // property element syntax
+        if (LayoutControls.Contains(tagName))
+            return SymbolKind.Module;
+        if (InteractiveControls.Contains(tagName))
+            return SymbolKind.Function;
+        if (TextControls.Contains(tagName))
+            return SymbolKind.String;
+        if (CollectionControls.Contains(tagName))
+            return SymbolKind.Array;
+        if (MediaControls.Contains(tagName))
+            return SymbolKind.File;
+        if (TemplateElements.Contains(tagName))
+            return SymbolKind.Interface;
+        if (ResourceElements.Contains(tagName))
+            return SymbolKind.Object;
         if (tagName.EndsWith("Window", StringComparison.OrdinalIgnoreCase) ||
             tagName.EndsWith("Control", StringComparison.OrdinalIgnoreCase) ||
             tagName.EndsWith("UserControl", StringComparison.OrdinalIgnoreCase) ||
             tagName.EndsWith("Page", StringComparison.OrdinalIgnoreCase) ||
             tagName.EndsWith("View", StringComparison.OrdinalIgnoreCase))
             return SymbolKind.Class;
-        if (tagName.Equals("Style", StringComparison.OrdinalIgnoreCase) ||
-            tagName.EndsWith("Template", StringComparison.OrdinalIgnoreCase))
-            return SymbolKind.Class;
         if (tagName.Equals("Setter", StringComparison.OrdinalIgnoreCase))
             return SymbolKind.Property;
-        if (tagName.Equals("DataTemplate", StringComparison.OrdinalIgnoreCase))
-            return SymbolKind.Class;
         return SymbolKind.Object;
     }
 
@@ -187,5 +267,6 @@ public class DocumentSymbolHandler : DocumentSymbolHandlerBase
         public int NameTokenStart { get; set; }
         public int NameTokenEnd { get; set; }
         public List<Node> Children { get; } = new();
+        public Dictionary<string, string>? Attributes { get; set; }
     }
 }

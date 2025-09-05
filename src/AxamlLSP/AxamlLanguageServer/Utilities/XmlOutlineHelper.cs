@@ -19,7 +19,8 @@ internal static class XmlOutlineHelper
         int NameStart,
         int NameEnd,
         int TagEnd,
-        bool IsClosing);
+        bool IsClosing,
+        Dictionary<string, string>? Attributes);
 
     public static IEnumerable<OutlineEvent> Enumerate(string? text)
     {
@@ -65,7 +66,7 @@ internal static class XmlOutlineHelper
                         if (!suppressed)
                         {
                             string tagName = text.Substring(closingNameStart, closingNameEnd - closingNameStart);
-                            yield return new OutlineEvent(false, false, tagName, currentTagStart.Value, closingNameStart, closingNameEnd, tagEnd, true);
+                            yield return new OutlineEvent(false, false, tagName, currentTagStart.Value, closingNameStart, closingNameEnd, tagEnd, true, null);
                         }
                     }
                 }
@@ -77,7 +78,8 @@ internal static class XmlOutlineHelper
                     {
                         string tagName = text.Substring(startNameStart, startNameEnd - startNameStart);
                         bool selfClosing = startNameEnd <= tagEnd && tagEnd > startNameStart && tagEnd - 1 < text.Length && text[tagEnd - 1] == '/';
-                        yield return new OutlineEvent(true, selfClosing, tagName, currentTagStart.Value, startNameStart, startNameEnd, tagEnd, false);
+                        var attrs = ExtractAttributes(text, currentTagStart.Value, tagEnd);
+                        yield return new OutlineEvent(true, selfClosing, tagName, currentTagStart.Value, startNameStart, startNameEnd, tagEnd, false, attrs);
                     }
                 }
                 currentTagStart = null;
@@ -85,6 +87,60 @@ internal static class XmlOutlineHelper
 
             prevState = state;
         }
+    }
+
+    // Lightweight attribute extraction for start tag region
+    private static Dictionary<string, string>? ExtractAttributes(string text, int tagStart, int tagEnd)
+    {
+        // Only scan between '<Tag ... >', skip tag name
+        int i = tagStart;
+        while (i < tagEnd && text[i] != '<') i++;
+        i++; // skip '<'
+        while (i < tagEnd && char.IsWhiteSpace(text[i])) i++;
+        // Skip tag name
+        while (i < tagEnd && !char.IsWhiteSpace(text[i]) && text[i] != '/' && text[i] != '>') i++;
+        var attrs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        while (i < tagEnd)
+        {
+            while (i < tagEnd && char.IsWhiteSpace(text[i])) i++;
+            int keyStart = i;
+            while (i < tagEnd && (char.IsLetterOrDigit(text[i]) || text[i] == ':' || text[i] == '-' || text[i] == '.')) i++;
+            int keyEnd = i;
+            if (keyEnd == keyStart) break;
+            string key = text.Substring(keyStart, keyEnd - keyStart);
+            while (i < tagEnd && char.IsWhiteSpace(text[i])) i++;
+            if (i < tagEnd && text[i] == '=')
+            {
+                i++;
+                while (i < tagEnd && char.IsWhiteSpace(text[i])) i++;
+                char quote = i < tagEnd ? text[i] : '\0';
+                if (quote == '"' || quote == '\'')
+                {
+                    i++;
+                    int valueStart = i;
+                    while (i < tagEnd && text[i] != quote) i++;
+                    int valueEnd = i;
+                    string value = text.Substring(valueStart, valueEnd - valueStart);
+                    attrs[key] = value;
+                    if (i < tagEnd && text[i] == quote) i++;
+                }
+                else
+                {
+                    // Unquoted value (rare)
+                    int valueStart = i;
+                    while (i < tagEnd && !char.IsWhiteSpace(text[i]) && text[i] != '/' && text[i] != '>') i++;
+                    int valueEnd = i;
+                    string value = text.Substring(valueStart, valueEnd - valueStart);
+                    attrs[key] = value;
+                }
+            }
+            else
+            {
+                // Attribute without value (rare)
+                attrs[key] = "";
+            }
+        }
+        return attrs.Count > 0 ? attrs : null;
     }
 
     private static int GetNameEnd(XmlParser parser, string s, int start)
