@@ -15,8 +15,9 @@
         },
         {
             "label": "Only Extension",
-            "command": "yarn",
+            "command": "npm",
             "args": [
+                "run",
                 "compile"
             ],
             "type": "shell",
@@ -38,8 +39,24 @@
             },
             "dependsOn": [
                 "Build LSP Server",
-                "Build Solution Parser"
+                "Build Solution Parser",
+                "Build Designer"
             ]
+        },
+        {
+            "label": "Build Designer",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/src/MyDesigner/MyDesigner.XamlDesigner/MyDesigner.XamlDesigner.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary",
+                "/property:Configuration=Release",
+                "--output",
+                "${workspaceFolder}/src/vscode-axaml/designerServer"
+            ],
+            "problemMatcher": "$msCompile"
         },
         {
             "label": "Build LSP Server",

@@ -12,6 +12,7 @@ export class OpenDesignerCommand implements Command {
     constructor(private context: vscode.ExtensionContext) {}
 
     private output = vscode.window.createOutputChannel('AXAML Designer');
+    private diagCollection = vscode.languages.createDiagnosticCollection('axaml-designer');
 
     public async execute(...args: any[]): Promise<any> {
         const editor = vscode.window.activeTextEditor;
@@ -158,6 +159,24 @@ export class OpenDesignerCommand implements Command {
                         if (doc.type === "log") {
                             const logLine = `[${doc.level?.toUpperCase() || 'INFO'}] ${doc.message || ''}`;
                             this.output.appendLine(logLine);
+                            continue;
+                        }
+
+                        // Handle diagnostic messages
+                        if (doc.type === "diagnostic") {
+                            try {
+                                const file = filePath; // diagnostics are for the opened file
+                                const line = typeof doc.line === 'number' && doc.line > 0 ? doc.line - 1 : 0;
+                                const col = typeof doc.column === 'number' && doc.column > 0 ? doc.column - 1 : 0;
+                                const range = new vscode.Range(line, col, line, col + 1);
+                                const severity = (doc.level === 'error') ? vscode.DiagnosticSeverity.Error : ((doc.level === 'warn') ? vscode.DiagnosticSeverity.Warning : vscode.DiagnosticSeverity.Information);
+                                const diagnostic = new vscode.Diagnostic(range, doc.message || '', severity);
+                                this.diagCollection.set(vscode.Uri.file(file), [diagnostic]);
+                                const diagLine = `[${doc.level?.toUpperCase() || 'INFO'}] ${doc.message || ''} (${line + 1},${col + 1})`;
+                                this.output.appendLine(diagLine);
+                            } catch (e) {
+                                // ignore
+                            }
                             continue;
                         }
                         
