@@ -116,8 +116,8 @@
         "title": "Open Designer",
         "category": "AXAML",
         "icon": {
-          "light": "./media/designer-light.svg",
-          "dark": "./media/designer-dark.svg"
+          "light": "./media/xaml-light.svg",
+          "dark": "./media/xaml-dark.svg"
         }
       }
     ],

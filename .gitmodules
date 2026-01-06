@@ -4,3 +4,6 @@
 [submodule "src/SolutionParser"]
 	path = src/SolutionParser
 	url = https://github.com/lextudio/SolutionParser/
+[submodule "src/MyDesigner"]
+	path = src/MyDesigner
+	url = https://github.com/lextudio/MyDesigner.git
