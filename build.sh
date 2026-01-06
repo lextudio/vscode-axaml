@@ -3,7 +3,7 @@
 cd $(dirname $0)
 
 cd ./src/vscode-axaml
-yarn install
+npm install
 
 cd ..
 

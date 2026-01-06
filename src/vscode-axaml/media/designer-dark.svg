@@ -1,0 +1,6 @@
+<svg class="svg-icon"
+    style="width: 1em; height: 1em; vertical-align: middle; fill: currentColor; overflow: hidden;"
+    viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+    <!-- Simplified designer/window icon - inherits currentColor -->
+    <path d="M832 160H192c-35.2 0-64 28.8-64 64v576c0 35.2 28.8 64 64 64h640c35.2 0 64-28.8 64-64V224c0-35.2-28.8-64-64-64zM256 256h512v128H256V256zm0 192h128v256H256V448zm192 0h384v256H448V448z" fill="currentColor"/>
+</svg>

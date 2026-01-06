@@ -25,8 +25,8 @@ dotnet build "$ROOT_DIR/src/AxamlLSP/AxamlLanguageServer/AxamlLanguageServer.csp
 dotnet build "$ROOT_DIR/src/SolutionParser/SolutionParser.csproj" -c Release --nologo --output "$EXT_DIR/solutionParserTool"
 
 echo "Building & bundling extension (TypeScript via esbuild)..."
-yarn --silent install --frozen-lockfile || yarn install
-yarn --silent bundle
+npm install
+npm run bundle
 
 echo "Packaging with vsce..."
 if command -v vsce >/dev/null 2>&1; then

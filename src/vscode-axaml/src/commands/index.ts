@@ -7,6 +7,7 @@ import { PreviewProcessManager } from "../previewProcessManager";
 import { UpdatePreviewerContext } from "./updatePreviewerContent";
 import { CreateNewProject } from "./createNewProject";
 import { SelectAvaloniaProject } from "./SelectAvaloniaProject";
+import { OpenDesignerCommand } from "./openDesigner";
 
 const processManager = new PreviewProcessManager();
 
@@ -20,6 +21,7 @@ export function registerAxamlCommands(
 	commandManager.register(new PreviewerProcess(context, processManager));
 	commandManager.register(new UpdatePreviewerContext(context));
 	commandManager.register(new SelectAvaloniaProject(context));
+	commandManager.register(new OpenDesignerCommand(context));
 
 	return commandManager;
 }
