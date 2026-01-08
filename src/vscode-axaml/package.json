@@ -1,9 +1,9 @@
 {
   "name": "vscode-axaml",
   "displayName": "VS Code Tools for AXAML by LeXtudio Inc.",
-  "description": "VS Code extension providing AXAML tooling. Published by LeXtudio Inc.",
+  "description": "VS Code extension providing AXAML tooling, visual designer and live previewer. Published by LeXtudio Inc.",
   "publisher": "lextudio",
-  "version": "11.0.52",
+  "version": "11.0.53",
   "license": "MIT",
   "preview": true,
   "qna": "false",

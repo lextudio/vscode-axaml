@@ -19,7 +19,7 @@ This extension is maintained and supported by **LeXtudio Inc.** to provide  deve
 ## What’s Not Covered
 
 - Custom project setup or troubleshooting outside the extension’s scope.
-- Support for legacy Avalonia versions no longer maintained by the AvaloniaUI team.
+- Support for legacy Avalonia versions no longer maintained by the Avalonia UI team.
 
 ## Contact & Commercial Support
 

@@ -1,5 +1,11 @@
 # Change Log
 
+## [11.0.53] - 7 January 2026
+
+Highlights:
+
+- Add integration of an experimental visual designer.
+
 ## [11.0.52] - 5 September 2025
 
 Highlights:

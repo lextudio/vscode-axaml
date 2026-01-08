@@ -12,11 +12,11 @@ Avalonia is a registered trademark of AvaloniaUI OÜ. This extension is independ
 
 ## History
 
-This repository is a fork of the original Avalonia for VS Code extension by AvaloniaUI. Our goal is to actively maintain and enhance the developer experience in Visual Studio Code by:
+This repository is a fork of the original Avalonia for VS Code extension by Avalonia UI. Our goal is to actively maintain and enhance the developer experience in Visual Studio Code by:
 
 - Keeping the extension up to date with new Avalonia releases
 - Improving performance, reliability, and cross‑platform behavior
-- Adding new productivity features (outline view, smarter completion, diagnostics, etc.)
+- Adding new productivity features (outline view, visual designer, smarter completion, diagnostics, etc.)
 - Responding to community feedback and accelerating fixes
 
 Issues and feature requests are welcome—your input helps shape the roadmap.
@@ -67,6 +67,20 @@ Rich syntax highlighter and contextual code completion will make it lot easier t
 
 The AXAML files in the VS Code are showed with document outlines, allowing you to collapse and expand sections of your AXAML files for better readability.
 
+### Visual Designer (Experimental)
+
+Quick steps to open the Visual Designer:
+
+- **Open an AXAML file** in the editor.
+- Run the command **AXAML: Open Designer** (from the Command Palette or the toolbar).
+- If prompted to generate build outputs, choose **Yes** to run `AXAML: Create previewer assets` and wait for the build to finish.
+- The extension will start the bundled designer host and send the open file to it. You should see a notification: **Designer started and file sent.**
+
+Troubleshooting:
+
+- If the designer fails to start, open the `AXAML Designer` output channel for logs and errors.
+- Ensure port `50023` is not blocked.
+
 ### Useful Commands
 
 - `AXAML: Toggle verbose AXAML logs` (`axaml.toggleVerboseLogs`)
@@ -88,4 +102,4 @@ The AXAML files in the VS Code are showed with document outlines, allowing you t
 ---
 
 Copyright (c) 2023 AvaloniaUI  
-Copyright (c) 2025 LeXtudio Inc.  
+Copyright (c) 2025-2026 LeXtudio Inc.  
