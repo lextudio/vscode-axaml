@@ -109,8 +109,7 @@
         "command": "axaml.selectProject",
         "title": "Select Executable Project to preview",
         "category": "AXAML"
-      }
-      ,
+      },
       {
         "command": "axaml.openDesigner",
         "title": "Open Designer",
@@ -127,8 +126,7 @@
           "when": "editorLangId == axaml",
           "command": "axaml.showPreviewToSide",
           "group": "navigation"
-        }
-        ,
+        },
         {
           "when": "editorLangId == axaml",
           "command": "axaml.openDesigner",
@@ -232,7 +230,7 @@
     "@typescript-eslint/eslint-plugin": "^5.53.0",
     "@typescript-eslint/parser": "^5.53.0",
     "@vscode/test-electron": "^2.2.3",
-    "esbuild": "^0.21.5",
+    "esbuild": "^0.27.2",
     "eslint": "^8.34.0",
     "jest": "^30.0.5",
     "mocha": "^10.2.0",

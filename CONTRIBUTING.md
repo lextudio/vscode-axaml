@@ -14,12 +14,8 @@ Welcome to VS Code Tools for AXAML! We appreciate your interest in contributing.
 
    See: https://github.com/nvm-sh/nvm for the latest version of this command.
 
-3. Install yarn  
-   yarn can be installed with the following command:
-
-    ```bash
-    npm install -g yarn
-    ```
+3. Install Node package manager (npm) and use it for scripts
+    The repository uses `npm` (installed with Node.js). Use `npm` for installing and running scripts.
 
 4. Latest Visual Studio Code
 

@@ -9,7 +9,7 @@ Languages / Tech:
 - TypeScript client (extension) under `src/vscode-axaml`
 - C# (.NET 9 target where applicable) language server under `src/AxamlLSP`
 - C# solution parser tool under `src/SolutionParser`
-- Build tooling: dotnet SDK 9+, yarn, vsce, esbuild, TypeScript.
+- Build tooling: dotnet SDK 9+, npm, vsce, esbuild, TypeScript.
 
 Key folders:
 - `src/vscode-axaml` – VS Code extension sources (TS in `src`, compiled to `out`)
@@ -19,9 +19,9 @@ Key folders:
 
 ## Build & Validate
 Always ensure dependencies installed.
-1. Install Node deps: (run once) `yarn install` inside `src/vscode-axaml` or use root script `yarn` if present.
+1. Install Node deps: (run once) `npm install` inside `src/vscode-axaml` or use root script `npm install` if present.
 2. Build .NET projects: `dotnet build src/AxamlLSP/AxamlLSP.sln -c Release` (packaging script builds needed bits automatically).
-3. Compile extension (dev): `yarn compile` (outputs to `out/`).
+3. Compile extension (dev): `npm run compile` (outputs to `out/`).
 4. Package extension: from repo root run `./package.sh` (rebuilds server & parser, bundles with esbuild, creates VSIX in `output/`).
 5. Optionally install locally: `code --install-extension output/vscode-axaml-<version>.vsix`.
 
