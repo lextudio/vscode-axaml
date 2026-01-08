@@ -28,8 +28,9 @@
         },
         {
             "label": "Build Extension",
-            "command": "yarn",
+            "command": "npm",
             "args": [
+                "run",
                 "compile"
             ],
             "type": "shell",
