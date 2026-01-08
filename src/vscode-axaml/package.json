@@ -10,7 +10,7 @@
   "sponsor": {
     "url": "https://github.com/sponsors/lextudio"
   },
-  "icon": "./media/icon.png",
+  "icon": "media/icon.png",
   "engines": {
     "vscode": "^1.79.0"
   },
