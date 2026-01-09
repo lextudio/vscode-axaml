@@ -1,5 +1,11 @@
 # Change Log
 
+## [11.0.54] - 9 January 2026
+
+Highlights:
+
+- Bump .NET runtime dependency to 10.0.0.
+
 ## [11.0.53] - 7 January 2026
 
 Highlights:
