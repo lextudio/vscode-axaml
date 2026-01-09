@@ -4,9 +4,9 @@ import { logger } from "./util/Utilities";
 import AppConstants from "./util/Constants";
 
 /**
- * The version of the .NET runtime to acquire.
+ * The .NET major version to acquire. Change to 10.0 to request .NET 10.
  */
-const dotnetRuntimeVersion = "9.0";
+const dotnetRuntimeVersion = "10.0";
 
 interface IDotnetAcquireResult {
     dotnetPath: string;
