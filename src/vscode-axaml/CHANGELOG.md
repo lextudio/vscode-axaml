@@ -1,5 +1,11 @@
 # Change Log
 
+## [11.0.55] - 21 January 2026
+
+Highlights:
+
+- Bump dependent binaries to .NET 10.0.
+
 ## [11.0.54] - 9 January 2026
 
 Highlights:
