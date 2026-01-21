@@ -147,7 +147,7 @@ VS Code Tools for AXAML is a cross-platform development environment for AXAML (A
 SolutionParser now supports both `<TargetFramework>` and `<TargetFrameworks>` in project files:
 
 - If `<TargetFramework>` is present, it is used for asset discovery.
-- If `<TargetFrameworks>` is present, SolutionParser selects the first compatible .NET TPM (e.g., `net8.0`, `net9.0`).
+- If `<TargetFrameworks>` is present, SolutionParser selects the first compatible .NET TPM (e.g., `net8.0`, `net10.0`).
 - If no compatible .NET TPM is found, SolutionParser logs a warning and falls back to the first listed target framework, which may not be previewer-compatible.
 
 This ensures previewer asset discovery works for multi-targeted projects and provides diagnostics for unsupported configurations.
