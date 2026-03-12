@@ -574,8 +574,8 @@ async function startLanguageServer(context: vscode.ExtensionContext) {
 			if (
 				vscode.window.visibleTextEditors.some(
 					(e) =>
-						e.document.languageId === "axaml" ||
-						e.document.languageId === "xaml"
+						e.document.languageId === "axaml"/* ||
+						e.document.languageId === "xaml" */
 				)
 			) {
 				await axsgService.ensureStarted();

@@ -1195,10 +1195,11 @@ function createLanguageClient(context: vscode.ExtensionContext): lsp.LanguageCli
 	const clientOptions: lsp.LanguageClientOptions = {
 		documentSelector: [
 			{ scheme: "file", language: "axaml" },
-			{ scheme: "file", language: "xaml" },
+			//{ scheme: "file", language: "xaml" },
 		],
 		synchronize: {
-			fileEvents: vscode.workspace.createFileSystemWatcher("**/*.{xaml,axaml}"),
+			//fileEvents: vscode.workspace.createFileSystemWatcher("**/*.{xaml,axaml}"),
+			fileEvents: vscode.workspace.createFileSystemWatcher("**/*.{axaml}"),
 		},
 		outputChannel,
 		initializationOptions: {

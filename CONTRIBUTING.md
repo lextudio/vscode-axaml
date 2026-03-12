@@ -4,7 +4,7 @@ Welcome to VS Code Tools for AXAML! We appreciate your interest in contributing.
 
 ## System Requirements
 
-1. .NET 9.0 SDK, you can download it from [here](https://dotnet.microsoft.com/download)
+1. .NET 10.0 SDK, you can download it from [here](https://dotnet.microsoft.com/download)
 2. Node.js, npm  
    You can get Node.js and npm using NVM (Node Version Manager) by running the following command:
 

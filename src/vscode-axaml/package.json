@@ -3,7 +3,7 @@
   "displayName": "VS Code Tools for AXAML by LeXtudio Inc.",
   "description": "VS Code extension providing AXAML tooling, visual designer and live previewer. Published by LeXtudio Inc.",
   "publisher": "lextudio",
-  "version": "11.0.55",
+  "version": "1.0.0",
   "license": "MIT",
   "preview": true,
   "qna": "false",
@@ -74,35 +74,111 @@
       }
     ],
     "semanticTokenTypes": [
-      { "id": "xamlDelimiter", "description": "XAML delimiters and punctuation.", "superType": "operator" },
-      { "id": "xamlName", "description": "XAML element or type names.", "superType": "type" },
-      { "id": "xamlAttribute", "description": "XAML attribute names.", "superType": "property" },
-      { "id": "xamlAttributeValue", "description": "XAML attribute values.", "superType": "string" },
-      { "id": "xamlAttributeQuotes", "description": "XAML attribute quotes.", "superType": "string" },
-      { "id": "xamlComment", "description": "XAML comments.", "superType": "comment" },
-      { "id": "xamlKeyword", "description": "XAML keywords and directives.", "superType": "keyword" },
-      { "id": "xamlMarkupExtensionClass", "description": "Markup extension class names.", "superType": "type" },
-      { "id": "xamlMarkupExtensionParameterName", "description": "Markup extension parameter names.", "superType": "property" },
-      { "id": "xamlMarkupExtensionParameterValue", "description": "Markup extension parameter values.", "superType": "string" },
-      { "id": "xamlNamespacePrefix", "description": "XML namespace prefixes in XAML.", "superType": "namespace" },
-      { "id": "xamlText", "description": "Text nodes in XAML.", "superType": "string" }
+      {
+        "id": "xamlDelimiter",
+        "description": "XAML delimiters and punctuation.",
+        "superType": "operator"
+      },
+      {
+        "id": "xamlName",
+        "description": "XAML element or type names.",
+        "superType": "type"
+      },
+      {
+        "id": "xamlAttribute",
+        "description": "XAML attribute names.",
+        "superType": "property"
+      },
+      {
+        "id": "xamlAttributeValue",
+        "description": "XAML attribute values.",
+        "superType": "string"
+      },
+      {
+        "id": "xamlAttributeQuotes",
+        "description": "XAML attribute quotes.",
+        "superType": "string"
+      },
+      {
+        "id": "xamlComment",
+        "description": "XAML comments.",
+        "superType": "comment"
+      },
+      {
+        "id": "xamlKeyword",
+        "description": "XAML keywords and directives.",
+        "superType": "keyword"
+      },
+      {
+        "id": "xamlMarkupExtensionClass",
+        "description": "Markup extension class names.",
+        "superType": "type"
+      },
+      {
+        "id": "xamlMarkupExtensionParameterName",
+        "description": "Markup extension parameter names.",
+        "superType": "property"
+      },
+      {
+        "id": "xamlMarkupExtensionParameterValue",
+        "description": "Markup extension parameter values.",
+        "superType": "string"
+      },
+      {
+        "id": "xamlNamespacePrefix",
+        "description": "XML namespace prefixes in XAML.",
+        "superType": "namespace"
+      },
+      {
+        "id": "xamlText",
+        "description": "Text nodes in XAML.",
+        "superType": "string"
+      }
     ],
     "semanticTokenScopes": [
       {
         "language": "axaml",
         "scopes": {
-          "xamlDelimiter": ["punctuation.definition.tag.xml", "punctuation.separator.key-value.xml"],
-          "xamlName": ["entity.name.tag.xml"],
-          "xamlAttribute": ["entity.other.attribute-name.xml"],
-          "xamlAttributeValue": ["string.quoted.double.xml", "string.quoted.single.xml"],
-          "xamlAttributeQuotes": ["punctuation.definition.string.begin.xml", "punctuation.definition.string.end.xml"],
-          "xamlComment": ["comment.block.xml"],
-          "xamlKeyword": ["keyword.other.xml"],
-          "xamlMarkupExtensionClass": ["support.class.xml", "entity.name.type.xml"],
-          "xamlMarkupExtensionParameterName": ["variable.parameter.xml"],
-          "xamlMarkupExtensionParameterValue": ["string.unquoted.xml"],
-          "xamlNamespacePrefix": ["entity.name.namespace.xml"],
-          "xamlText": ["text.xml"]
+          "xamlDelimiter": [
+            "punctuation.definition.tag.xml",
+            "punctuation.separator.key-value.xml"
+          ],
+          "xamlName": [
+            "entity.name.tag.xml"
+          ],
+          "xamlAttribute": [
+            "entity.other.attribute-name.xml"
+          ],
+          "xamlAttributeValue": [
+            "string.quoted.double.xml",
+            "string.quoted.single.xml"
+          ],
+          "xamlAttributeQuotes": [
+            "punctuation.definition.string.begin.xml",
+            "punctuation.definition.string.end.xml"
+          ],
+          "xamlComment": [
+            "comment.block.xml"
+          ],
+          "xamlKeyword": [
+            "keyword.other.xml"
+          ],
+          "xamlMarkupExtensionClass": [
+            "support.class.xml",
+            "entity.name.type.xml"
+          ],
+          "xamlMarkupExtensionParameterName": [
+            "variable.parameter.xml"
+          ],
+          "xamlMarkupExtensionParameterValue": [
+            "string.unquoted.xml"
+          ],
+          "xamlNamespacePrefix": [
+            "entity.name.namespace.xml"
+          ],
+          "xamlText": [
+            "text.xml"
+          ]
         }
       }
     ],
@@ -110,7 +186,9 @@
       "[axaml]": {
         "editor.inlayHints.enabled": "onUnlessPressed",
         "editor.semanticHighlighting.enabled": true,
-        "editor.quickSuggestions": { "strings": "on" },
+        "editor.quickSuggestions": {
+          "strings": "on"
+        },
         "editor.semanticTokenColorCustomizations": {
           "rules": {
             "xamlDelimiter": "#0000FF",
@@ -206,11 +284,6 @@
         },
         {
           "command": "axsg.refactor.renameSymbol",
-          "when": "resourceScheme == file && editorLangId == xaml && axsg.active",
-          "group": "1_modification@100"
-        },
-        {
-          "command": "axsg.refactor.renameSymbol",
           "when": "resourceScheme == file && editorLangId == axaml && axsg.active",
           "group": "1_modification@100"
         }
@@ -225,11 +298,6 @@
       {
         "command": "axsg.refactor.renameSymbol",
         "key": "f2",
-        "when": "editorTextFocus && resourceScheme == file && editorLangId == xaml && axsg.active"
-      },
-      {
-        "command": "axsg.refactor.renameSymbol",
-        "key": "f2",
         "when": "editorTextFocus && resourceScheme == file && editorLangId == axaml && axsg.active"
       }
     ],
@@ -240,7 +308,10 @@
         "properties": {
           "axsg.languageServer.mode": {
             "type": "string",
-            "enum": ["bundled", "custom"],
+            "enum": [
+              "bundled",
+              "custom"
+            ],
             "default": "bundled",
             "description": "Language server launch mode. 'bundled' runs the managed server packaged in the extension via dotnet. 'custom' runs the command configured below.",
             "scope": "window"
@@ -253,14 +324,20 @@
           },
           "axsg.languageServer.args": {
             "type": "array",
-            "items": { "type": "string" },
+            "items": {
+              "type": "string"
+            },
             "default": [],
             "description": "Additional command-line arguments passed to the AXSG language server.",
             "scope": "window"
           },
           "axsg.languageServer.trace": {
             "type": "string",
-            "enum": ["off", "messages", "verbose"],
+            "enum": [
+              "off",
+              "messages",
+              "verbose"
+            ],
             "default": "off",
             "description": "Trace level for AXSG language-server protocol communication.",
             "scope": "window"
@@ -273,7 +350,10 @@
           },
           "axsg.inlayHints.typeDisplayStyle": {
             "type": "string",
-            "enum": ["short", "qualified"],
+            "enum": [
+              "short",
+              "qualified"
+            ],
             "default": "short",
             "description": "Controls whether AXSG XAML type hints use short type names or qualified CLR names.",
             "scope": "window"
@@ -335,8 +415,7 @@
             "default": "",
             "description": "The currently selected solution file for this extension.",
             "scope": "workspace"
-          }
-          ,
+          },
           "axaml.languageServer": {
             "type": "string",
             "enum": [
@@ -363,7 +442,7 @@
       }
     ]
   },
-    "scripts": {
+  "scripts": {
     "install:all": "npm install",
     "vscode:prepublish": "npm run bundle",
     "compile": "tsc -p ./",
@@ -371,7 +450,8 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
-    "bundle": "node ./esbuild.config.mjs"
+    "bundle": "node ./esbuild.config.mjs",
+    "prebundle": "node ./scripts/resolveVersion.js"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.1",
