@@ -108,8 +108,7 @@
         "command": "axaml.selectProject",
         "title": "Select Executable Project to preview",
         "category": "AXAML"
-      },
-      
+      }
     ],
     "menus": {
       "editor/title": [
@@ -117,8 +116,7 @@
           "when": "editorLangId == axaml",
           "command": "axaml.showPreviewToSide",
           "group": "navigation"
-        },
-        
+        }
       ],
       "commandPalette": [
         {
@@ -184,6 +182,23 @@
             "default": "",
             "description": "The currently selected solution file for this extension.",
             "scope": "workspace"
+          }
+          ,
+          "axaml.languageServer": {
+            "type": "string",
+            "enum": [
+              "XamlToCSharpGenerator",
+              "AxamlLanguageServer"
+            ],
+            "default": "XamlToCSharpGenerator",
+            "description": "Select which language server implementation the extension should use. If the chosen server is not found in the packaged server folder the extension will fall back to the other available server.",
+            "scope": "window"
+          },
+          "axaml.languageServerPath": {
+            "type": "string",
+            "default": "",
+            "description": "Optional absolute path to a language server executable or DLL. If set, this overrides the built-in server selection.",
+            "scope": "window"
           }
         }
       }
