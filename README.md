@@ -67,20 +67,6 @@ Rich syntax highlighter and contextual code completion will make it lot easier t
 
 The AXAML files in the VS Code are showed with document outlines, allowing you to collapse and expand sections of your AXAML files for better readability.
 
-### Visual Designer (Experimental)
-
-Quick steps to open the Visual Designer:
-
-- **Open an AXAML file** in the editor.
-- Run the command **AXAML: Open Designer** (from the Command Palette or the toolbar).
-- If prompted to generate build outputs, choose **Yes** to run `AXAML: Create previewer assets` and wait for the build to finish.
-- The extension will start the bundled designer host and send the open file to it. You should see a notification: **Designer started and file sent.**
-
-Troubleshooting:
-
-- If the designer fails to start, open the `AXAML Designer` output channel for logs and errors.
-- Ensure port `50023` is not blocked.
-
 ### Useful Commands
 
 - `AXAML: Toggle verbose AXAML logs` (`axaml.toggleVerboseLogs`)

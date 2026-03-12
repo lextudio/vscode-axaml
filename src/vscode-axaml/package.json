@@ -36,8 +36,7 @@
   },
   "activationEvents": [
     "workspaceContains:**/*.axaml",
-    "onLanguage:axaml",
-    "onCommand:axaml.openDesigner"
+    "onLanguage:axaml"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -110,15 +109,7 @@
         "title": "Select Executable Project to preview",
         "category": "AXAML"
       },
-      {
-        "command": "axaml.openDesigner",
-        "title": "Open Designer",
-        "category": "AXAML",
-        "icon": {
-          "light": "./media/xaml-light.svg",
-          "dark": "./media/xaml-dark.svg"
-        }
-      }
+      
     ],
     "menus": {
       "editor/title": [
@@ -127,11 +118,7 @@
           "command": "axaml.showPreviewToSide",
           "group": "navigation"
         },
-        {
-          "when": "editorLangId == axaml",
-          "command": "axaml.openDesigner",
-          "group": "navigation"
-        }
+        
       ],
       "commandPalette": [
         {
@@ -208,11 +195,9 @@
       }
     ]
   },
-  "scripts": {
+    "scripts": {
     "install:all": "npm install",
-    "vscode:prepublish": "npm run prepare:server && npm run bundle",
-    "prepare:server": "npm run build:designer",
-    "build:designer": "dotnet publish ../MyDesigner/MyDesigner.XamlDesigner/MyDesigner.XamlDesigner.csproj -c Release --self-contained false -o ./designerServer",
+    "vscode:prepublish": "npm run bundle",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",

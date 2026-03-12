@@ -1,3 +1,4 @@
 {
-    "dotnet.defaultSolution": "src/AxamlLSP/AxamlLSP.sln"
+    "dotnet.defaultSolution": "src/AxamlLSP/AxamlLSP.sln",
+    "dotrush.roslyn.projectOrSolutionFiles": []
 }
