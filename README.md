@@ -96,6 +96,10 @@ The AXAML files in the VS Code are showed with document outlines, allowing you t
 >
 > NOTE: AXSG language server is still an early preview. It might report many warnings (in AXSG0111 category or others). Please ignore them, or report directly to [this repo](https://github.com/wieslawsoltes/XamlToCSharpGenerator/issues).
 
+### Release Notes
+
+Detailed information can be found on [this page](https://marketplace.visualstudio.com/items/lextudio.vscode-axaml/changelog).
+
 ---
 
 Copyright (c) 2023 AvaloniaUI  
