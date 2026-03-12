@@ -36,7 +36,8 @@
   },
   "activationEvents": [
     "workspaceContains:**/*.axaml",
-    "onLanguage:axaml"
+    "onLanguage:axaml",
+    "onCommand:axsg.refactor.renameSymbol"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -72,6 +73,62 @@
         "path": "./AXAML.tmLanguage.json"
       }
     ],
+    "semanticTokenTypes": [
+      { "id": "xamlDelimiter", "description": "XAML delimiters and punctuation.", "superType": "operator" },
+      { "id": "xamlName", "description": "XAML element or type names.", "superType": "type" },
+      { "id": "xamlAttribute", "description": "XAML attribute names.", "superType": "property" },
+      { "id": "xamlAttributeValue", "description": "XAML attribute values.", "superType": "string" },
+      { "id": "xamlAttributeQuotes", "description": "XAML attribute quotes.", "superType": "string" },
+      { "id": "xamlComment", "description": "XAML comments.", "superType": "comment" },
+      { "id": "xamlKeyword", "description": "XAML keywords and directives.", "superType": "keyword" },
+      { "id": "xamlMarkupExtensionClass", "description": "Markup extension class names.", "superType": "type" },
+      { "id": "xamlMarkupExtensionParameterName", "description": "Markup extension parameter names.", "superType": "property" },
+      { "id": "xamlMarkupExtensionParameterValue", "description": "Markup extension parameter values.", "superType": "string" },
+      { "id": "xamlNamespacePrefix", "description": "XML namespace prefixes in XAML.", "superType": "namespace" },
+      { "id": "xamlText", "description": "Text nodes in XAML.", "superType": "string" }
+    ],
+    "semanticTokenScopes": [
+      {
+        "language": "axaml",
+        "scopes": {
+          "xamlDelimiter": ["punctuation.definition.tag.xml", "punctuation.separator.key-value.xml"],
+          "xamlName": ["entity.name.tag.xml"],
+          "xamlAttribute": ["entity.other.attribute-name.xml"],
+          "xamlAttributeValue": ["string.quoted.double.xml", "string.quoted.single.xml"],
+          "xamlAttributeQuotes": ["punctuation.definition.string.begin.xml", "punctuation.definition.string.end.xml"],
+          "xamlComment": ["comment.block.xml"],
+          "xamlKeyword": ["keyword.other.xml"],
+          "xamlMarkupExtensionClass": ["support.class.xml", "entity.name.type.xml"],
+          "xamlMarkupExtensionParameterName": ["variable.parameter.xml"],
+          "xamlMarkupExtensionParameterValue": ["string.unquoted.xml"],
+          "xamlNamespacePrefix": ["entity.name.namespace.xml"],
+          "xamlText": ["text.xml"]
+        }
+      }
+    ],
+    "configurationDefaults": {
+      "[axaml]": {
+        "editor.inlayHints.enabled": "onUnlessPressed",
+        "editor.semanticHighlighting.enabled": true,
+        "editor.quickSuggestions": { "strings": "on" },
+        "editor.semanticTokenColorCustomizations": {
+          "rules": {
+            "xamlDelimiter": "#0000FF",
+            "xamlName": "#A31515",
+            "xamlAttribute": "#FF0000",
+            "xamlAttributeValue": "#0000FF",
+            "xamlAttributeQuotes": "#0000FF",
+            "xamlComment": "#008000",
+            "xamlKeyword": "#0000FF",
+            "xamlMarkupExtensionClass": "#2B91AF",
+            "xamlMarkupExtensionParameterName": "#FF0000",
+            "xamlMarkupExtensionParameterValue": "#0000FF",
+            "xamlNamespacePrefix": "#008080",
+            "number": "#098658"
+          }
+        }
+      }
+    },
     "commands": [
       {
         "command": "axaml.createPreviewerAssets",
@@ -108,6 +165,16 @@
         "command": "axaml.selectProject",
         "title": "Select Executable Project to preview",
         "category": "AXAML"
+      },
+      {
+        "command": "axsg.languageServer.showInfo",
+        "title": "Show AXSG Language Server Info",
+        "category": "AXSG"
+      },
+      {
+        "command": "axsg.refactor.renameSymbol",
+        "title": "Rename Symbol Across C# and XAML",
+        "category": "AXSG"
       }
     ],
     "menus": {
@@ -123,10 +190,96 @@
           "command": "axaml.showPreviewToSide",
           "when": "resourceLangId == axaml",
           "group": "AXAML"
+        },
+        {
+          "command": "axsg.languageServer.showInfo"
+        },
+        {
+          "command": "axsg.refactor.renameSymbol"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "axsg.refactor.renameSymbol",
+          "when": "resourceScheme == file && editorLangId == csharp && axsg.active",
+          "group": "1_modification@100"
+        },
+        {
+          "command": "axsg.refactor.renameSymbol",
+          "when": "resourceScheme == file && editorLangId == xaml && axsg.active",
+          "group": "1_modification@100"
+        },
+        {
+          "command": "axsg.refactor.renameSymbol",
+          "when": "resourceScheme == file && editorLangId == axaml && axsg.active",
+          "group": "1_modification@100"
         }
       ]
     },
+    "keybindings": [
+      {
+        "command": "axsg.refactor.renameSymbol",
+        "key": "f2",
+        "when": "editorTextFocus && resourceScheme == file && editorLangId == csharp && axsg.active"
+      },
+      {
+        "command": "axsg.refactor.renameSymbol",
+        "key": "f2",
+        "when": "editorTextFocus && resourceScheme == file && editorLangId == xaml && axsg.active"
+      },
+      {
+        "command": "axsg.refactor.renameSymbol",
+        "key": "f2",
+        "when": "editorTextFocus && resourceScheme == file && editorLangId == axaml && axsg.active"
+      }
+    ],
     "configuration": [
+      {
+        "title": "AXSG Language Server",
+        "type": "object",
+        "properties": {
+          "axsg.languageServer.mode": {
+            "type": "string",
+            "enum": ["bundled", "custom"],
+            "default": "bundled",
+            "description": "Language server launch mode. 'bundled' runs the managed server packaged in the extension via dotnet. 'custom' runs the command configured below.",
+            "scope": "window"
+          },
+          "axsg.languageServer.command": {
+            "type": "string",
+            "default": "axsg-lsp",
+            "description": "Path to AXSG language server command (used when mode is 'custom').",
+            "scope": "window"
+          },
+          "axsg.languageServer.args": {
+            "type": "array",
+            "items": { "type": "string" },
+            "default": [],
+            "description": "Additional command-line arguments passed to the AXSG language server.",
+            "scope": "window"
+          },
+          "axsg.languageServer.trace": {
+            "type": "string",
+            "enum": ["off", "messages", "verbose"],
+            "default": "off",
+            "description": "Trace level for AXSG language-server protocol communication.",
+            "scope": "window"
+          },
+          "axsg.inlayHints.bindingTypeHints.enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Show semantic type hints for compiled XAML bindings.",
+            "scope": "window"
+          },
+          "axsg.inlayHints.typeDisplayStyle": {
+            "type": "string",
+            "enum": ["short", "qualified"],
+            "default": "short",
+            "description": "Controls whether AXSG XAML type hints use short type names or qualified CLR names.",
+            "scope": "window"
+          }
+        }
+      },
       {
         "title": "AXAML",
         "type": "object",
@@ -190,7 +343,7 @@
               "XamlToCSharpGenerator",
               "AxamlLanguageServer"
             ],
-            "default": "AxamlLanguageServer",
+            "default": "XamlToCSharpGenerator",
             "description": "Select which language server implementation the extension should use. If the chosen server is not found in the packaged server folder the extension will fall back to the other available server.",
             "scope": "window"
           },

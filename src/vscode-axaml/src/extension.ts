@@ -4,6 +4,8 @@ import * as vscode from "vscode";
 import * as fs from "fs-extra";
 import * as lsp from "vscode-languageclient/node";
 import { createLanguageService } from "./client";
+import { createAxsgLanguageService } from "./axsgClient";
+import type { AxsgLanguageService } from "./axsgTypes";
 import { registerAxamlCommands as registerAxamlCommands } from "./commands";
 import { CommandManager } from "./commandManager";
 import * as util from "./util/Utilities";
@@ -19,6 +21,7 @@ import {
 import AppConstants from "./util/Constants";
 
 let languageClient: lsp.LanguageClient | null = null;
+let axsgService: AxsgLanguageService | null = null;
 
 /**
  * @returns undefined when no workspace folders are open.
@@ -451,8 +454,6 @@ export async function activate(context: vscode.ExtensionContext) {
 		refreshLanguageStatus();
 	});
 
-	languageClient = await createLanguageService();
-
 	// Rebuild model command (no QuickPick)
 	context.subscriptions.push(
 		vscode.commands.registerCommand(
@@ -499,47 +500,121 @@ export async function activate(context: vscode.ExtensionContext) {
 		)
 	);
 
-	try {
-		logger.info("Starting AXAML Language Server...");
-		await languageClient.start();
-	} catch (error) {
-		logger.error(`Failed to start AXAML Language Server. ${error}`);
-		logger.show();
-	}
+	// Start the appropriate language server based on configuration
+	await startLanguageServer(context);
 
-	// React to configuration changes for build configuration preference
+	// React to configuration changes
 	context.subscriptions.push(
 		vscode.workspace.onDidChangeConfiguration(async (e) => {
-			if (
-				e.affectsConfiguration(
-					"axaml.completion.buildConfigurationPreference"
-				) ||
-				e.affectsConfiguration(
-					"axaml.buildConfigurationPreference"
-				) ||
-				e.affectsConfiguration("axaml.trace.verbose") ||
-				e.affectsConfiguration("axaml.verboseLogs")
-			) {
+			// Server implementation switch -- full teardown and restart
+			if (e.affectsConfiguration("axaml.languageServer")) {
 				try {
 					logger.info(
-						"Restarting language server due to configuration change..."
+						"Switching language server implementation..."
 					);
-					await languageClient?.stop();
-					languageClient = await createLanguageService();
-					await languageClient.start();
-					logger.info(
-						"Language server restarted with new configuration preference."
-					);
+					await stopActiveLanguageServer();
+					await startLanguageServer(context);
+					logger.info("Language server switched successfully.");
 				} catch (err) {
-					logger.error(`Failed to restart language server: ${err}`);
+					logger.error(
+						`Failed to switch language server: ${err}`
+					);
+				}
+				return;
+			}
+
+			// AxamlLanguageServer-specific config changes (only when AXSG is not active)
+			if (!axsgService) {
+				if (
+					e.affectsConfiguration(
+						"axaml.completion.buildConfigurationPreference"
+					) ||
+					e.affectsConfiguration(
+						"axaml.buildConfigurationPreference"
+					) ||
+					e.affectsConfiguration("axaml.trace.verbose") ||
+					e.affectsConfiguration("axaml.verboseLogs")
+				) {
+					try {
+						logger.info(
+							"Restarting language server due to configuration change..."
+						);
+						await languageClient?.stop();
+						languageClient = await createLanguageService();
+						await languageClient.start();
+						logger.info(
+							"Language server restarted with new configuration preference."
+						);
+					} catch (err) {
+						logger.error(
+							`Failed to restart language server: ${err}`
+						);
+					}
 				}
 			}
 		})
 	);
 }
 
+/**
+ * Starts the appropriate language server based on the current
+ * `axaml.languageServer` configuration setting.
+ */
+async function startLanguageServer(context: vscode.ExtensionContext) {
+	const config = vscode.workspace.getConfiguration("axaml");
+	const preferred = config.get<string>(
+		"languageServer",
+		"XamlToCSharpGenerator"
+	);
+
+	if (preferred === "XamlToCSharpGenerator") {
+		try {
+			axsgService = await createAxsgLanguageService(context);
+			// Eagerly start if a XAML/AXAML file is already visible
+			if (
+				vscode.window.visibleTextEditors.some(
+					(e) =>
+						e.document.languageId === "axaml" ||
+						e.document.languageId === "xaml"
+				)
+			) {
+				await axsgService.ensureStarted();
+			}
+			logger.info("AXSG language service activated.");
+		} catch (error) {
+			logger.error(`Failed to start AXSG language service. ${error}`);
+			logger.show();
+		}
+	} else {
+		try {
+			languageClient = await createLanguageService();
+			logger.info("Starting AXAML Language Server...");
+			await languageClient.start();
+		} catch (error) {
+			logger.error(
+				`Failed to start AXAML Language Server. ${error}`
+			);
+			logger.show();
+		}
+	}
+}
+
+/**
+ * Stops whichever language server is currently active.
+ */
+async function stopActiveLanguageServer() {
+	if (axsgService) {
+		await axsgService.stop();
+		axsgService = null;
+	}
+	if (languageClient) {
+		await languageClient.stop();
+		languageClient = null;
+	}
+}
+
 // This method is called when your extension is deactivated
 export async function deactivate() {
-	await languageClient?.stop();
+	await stopActiveLanguageServer();
 	logger.info("Language client stopped");
 }
