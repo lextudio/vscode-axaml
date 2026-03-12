@@ -85,6 +85,14 @@ The AXAML files in the VS Code are showed with document outlines, allowing you t
 - `axaml.previewer.emitBinlog` – Emit MSBuild binary log when building previewer assets
 - `axaml.previewer.runDotnetInfo` – Run 'dotnet --info' before building previewer assets
 
+### Language server (AXSG)
+
+- Default: the extension now uses the `XamlToCSharpGenerator` (AXSG) language server by default. AXSG focuses specifically on AXAML workflows and offers improved completion, inline C# projections, and tighter previewer integration.
+- Files targeted: the extension and AXSG are scoped to AXAML files only (file type `axaml`). They do not activate on generic `xaml` files.
+- To change the server: set `axaml.languageServer` to either `XamlToCSharpGenerator` or `AxamlLanguageServer` in your settings.
+- To point to a custom server binary or DLL, set `axaml.languageServerPath` to an absolute path; this overrides the `axaml.languageServer` selection.
+
+
 ---
 
 Copyright (c) 2023 AvaloniaUI  

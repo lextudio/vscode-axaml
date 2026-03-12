@@ -1,5 +1,12 @@
 # Change Log
 
+## [11.0.56] - 12 March 2026
+
+Highlights:
+
+- Default language server switched to `XamlToCSharpGenerator` (AXSG). This server provides improved AXAML-specific completion, previewer integration, and inline C# projections.
+- Experimental visual designer removed due to stability issues.
+
 ## [11.0.55] - 21 January 2026
 
 Highlights:
