@@ -55,7 +55,7 @@
                 "/consoleloggerparameters:NoSummary",
                 "/property:Configuration=Release",
                 "--output",
-                "${workspaceFolder}/src/vscode-axaml/axamlServer"
+                "${workspaceFolder}/src/vscode-axaml/axsgServer"
             ],
             "problemMatcher": "$msCompile"
         },

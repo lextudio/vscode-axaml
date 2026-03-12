@@ -4,5 +4,6 @@ node_modules
 *.vsix
 .vscode-test
 coverage
-avaloniaServer
+axamlServer
+axsgServer
 solutionParserTool

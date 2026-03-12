@@ -66,25 +66,26 @@ export function getLanguageServerPath() {
 		}
 		logger.warn(`Configured axaml.languageServerPath does not exist: ${overridePath}. Falling back to built-in server selection.`);
 	}
-	const preferred = config.get<string>('languageServer') || 'XamlToCSharpGenerator';
-	const extServerDir = path.join(avaloniaExtn.extensionPath, 'axamlServer');
-	// Map known server names to expected binaries
+	const preferred = config.get<string>('languageServer') || 'AxamlLanguageServer';
+	const extServerDirAxaml = path.join(avaloniaExtn.extensionPath, 'axamlServer');
+	const extServerDirAxsg = path.join(avaloniaExtn.extensionPath, 'axsgServer');
+
 	const candidates: string[] = [];
 	if (preferred === 'XamlToCSharpGenerator') {
-		candidates.push(path.join(extServerDir, 'XamlToCSharpGenerator.LanguageServer.dll'));
-		candidates.push(path.join(extServerDir, 'XamlToCSharpGenerator.LanguageServer'));
-		// fallback to older Axaml server
-		candidates.push(path.join(extServerDir, 'AxamlLanguageServer.dll'));
+		// Prefer files in axsgServer
+		candidates.push(path.join(extServerDirAxsg, 'XamlToCSharpGenerator.LanguageServer.dll'));
+		candidates.push(path.join(extServerDirAxsg, 'XamlToCSharpGenerator.LanguageServer'));
 	} else {
-		candidates.push(path.join(extServerDir, 'AxamlLanguageServer.dll'));
-		candidates.push(path.join(extServerDir, 'AxamlLanguageServer'));
-		// fallback to new generator
-		candidates.push(path.join(extServerDir, 'XamlToCSharpGenerator.LanguageServer.dll'));
+		// Prefer AxamlLanguageServer in axamlServer
+		candidates.push(path.join(extServerDirAxaml, 'AxamlLanguageServer.dll'));
+		candidates.push(path.join(extServerDirAxaml, 'AxamlLanguageServer'));
 	}
+
 	for (const c of candidates) {
 		if (fs.existsSync(c)) {
 			return c;
 		}
 	}
-	throw new Error(`Could not find a language server binary under ${extServerDir}. Built-in candidates: ${candidates.join(', ')}.`);
+
+	throw new Error(`Could not find a language server binary. Checked: ${candidates.join(', ')}.`);
 }

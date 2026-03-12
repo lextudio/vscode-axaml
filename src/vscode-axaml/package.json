@@ -190,7 +190,7 @@
               "XamlToCSharpGenerator",
               "AxamlLanguageServer"
             ],
-            "default": "XamlToCSharpGenerator",
+            "default": "AxamlLanguageServer",
             "description": "Select which language server implementation the extension should use. If the chosen server is not found in the packaged server folder the extension will fall back to the other available server.",
             "scope": "window"
           },
