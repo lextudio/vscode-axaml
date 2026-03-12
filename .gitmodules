@@ -4,3 +4,6 @@
 [submodule "src/SolutionParser"]
 	path = src/SolutionParser
 	url = https://github.com/lextudio/SolutionParser/
+[submodule "src/XamlToCSharpGenerator"]
+	path = src/XamlToCSharpGenerator
+	url = https://github.com/lextm/XamlToCSharpGenerator.git
