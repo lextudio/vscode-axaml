@@ -99,6 +99,16 @@ export class WebPreviewerPanel {
 			this._setupHtmlMode(url, server);
 		}
 
+		// Retry button on the error page: dispose this panel (killing the previewer)
+		// then re-run the preview command so everything restarts cleanly.
+		this._panel.webview.onDidReceiveMessage((msg) => {
+			if (msg.type === "retry") {
+				const fileUrl = this._fileUrl;
+				this.dispose();
+				void vscode.commands.executeCommand("axaml.previewProcess", fileUrl);
+			}
+		}, undefined, this._disposables);
+
 		// Listen for when the panel is disposed
 		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 	}
@@ -616,6 +626,18 @@ export class WebPreviewerPanel {
 		.card .title { font-weight: 600; margin-bottom: 6px; }
 		.card .error-msg { font-family: monospace; font-size: 12px; background: rgba(255,0,0,.08); border: 1px solid rgba(255,0,0,.2); border-radius: 4px; padding: 6px 8px; margin: 6px 0; word-break: break-word; }
 		.card .hint { font-size: 12px; opacity: 0.7; margin-top: 8px; }
+		.retry-btn {
+			margin-top: 12px;
+			padding: 6px 16px;
+			border-radius: var(--radius);
+			border: 1px solid var(--vscode-button-border, transparent);
+			background: var(--vscode-button-background);
+			color: var(--vscode-button-foreground);
+			font: inherit;
+			font-size: 13px;
+			cursor: pointer;
+		}
+		.retry-btn:hover { background: var(--vscode-button-hoverBackground); }
 	</style>
 </head>
 <body>
@@ -642,9 +664,16 @@ ${bodyInner}
 		<div class="card">
 			<div class="title">Preview failed</div>
 			<div class="error-msg">${error.message}</div>
-			<div class="hint">Close this panel, fix the issue, then run <strong>Show Preview</strong> again.</div>
+			<div class="hint">Fix the issue, then click <strong>Retry</strong> or run <strong>Show Preview</strong> again.</div>
+			<button class="retry-btn" id="retryBtn">&#x21BA; Retry</button>
 		</div>
-	</div>`;
+	</div>
+	<script>
+		var vscode = acquireVsCodeApi();
+		document.getElementById('retryBtn').addEventListener('click', function() {
+			vscode.postMessage({ type: 'retry' });
+		});
+	</script>`;
 		return this._getHtmlShell(body);
 	}
 }

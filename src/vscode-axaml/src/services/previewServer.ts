@@ -23,14 +23,22 @@ export class PreviewServer implements IPreviewServer {
 	public async start() {
 		logger.info(`PreviewServer.start ${this._assemblyName}`);
 
-		this._onReady = new EventDispatcher<IPreviewServer, void>(); // Remove all subscribers
+		this._onReady = new EventDispatcher<IPreviewServer, void>();
 		this._onError = new EventDispatcher<IPreviewServer, Error>();
 		this._onFrame = new EventDispatcher<IPreviewServer, FrameData>();
+		this._isReady = false;
+		this._dpiX = 96.0;
+		this._dpiY = 96.0;
+		this._socket = undefined;
+		this._socketBuffer = Buffer.alloc(0);
 
+		// Recreate the underlying TCP server so that stop()+start() is idempotent
+		// and never accumulates stale "connection" listeners.
+		this._server = net.createServer();
+		this._server.on("connection", this.handleSocketEvents.bind(this));
 		this._server.listen(this._port, this._host, () =>
 			logger.info(`Preview server listening on port ${this._port}`)
 		);
-		this._server.on("connection", this.handleSocketEvents.bind(this));
 	}
 
 	handleSocketEvents(socket: net.Socket) {
