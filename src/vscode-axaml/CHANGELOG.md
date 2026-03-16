@@ -1,5 +1,25 @@
 # Change Log
 
+## [11.0.59] - 16 March 2026
+
+Highlights:
+
+- Previewer nows has TCP mode (`axaml.previewer.transportMode` defaults to `tcp`).
+- Enabled a DPI-aware scaling mode when using the `tcp` transport.
+- Use `Alt` + scroll on the preview canvas to adjust zoom.
+
+## [11.0.58] - 16 March 2026
+
+Highlights:
+
+- Update AXSG language server to latest.
+
+## [11.0.57] - 15 March 2026
+
+Highlights:
+
+- Update AXSG language server to latest.
+
 ## [11.0.56] - 12 March 2026
 
 Highlights:

@@ -57,6 +57,9 @@ The previewer will prompt you to build your project if needed.
 
 The previewer will refresh when you switch between multiple xaml files, unlike Visual Studio for Windows or Rider, VS Code will reuse the single preview window.
 
+- New: the previewer supports a DPI‑aware scaling mode that renders crisper UI previews. When `axaml.previewer.transportMode` is set to `tcp` (the default), the previewer sends raw pixel frames over a TCP channel and the extension renders them on a canvas using the editor's DPI settings for sharper, correctly scaled output. With your mouse, hold `Alt` and scroll on the preview canvas to adjust the zoom level.
+- If you experience issues with embedded content or prefer the previewer's built‑in HTML server, set `axaml.previewer.transportMode` to `html` to embed the preview in an iframe instead.
+
 ### XAML Code completion
 
 Rich syntax highlighter and contextual code completion will make it lot easier to read and write AXAML files
@@ -84,6 +87,7 @@ The AXAML files in the VS Code are showed with document outlines, allowing you t
 - `axaml.misc.suppressXamlStylerRecommendation` – Suppress prompt recommending XAML Styler extension
 - `axaml.previewer.emitBinlog` – Emit MSBuild binary log when building previewer assets
 - `axaml.previewer.runDotnetInfo` – Run 'dotnet --info' before building previewer assets
+- `axaml.previewer.transportMode` – Previewer transport mode. Default is `tcp`: the previewer sends raw pixel frames over a TCP channel and the extension renders them on a canvas (provides crisper, DPI‑aware scaling). Set to `html` to embed the previewer's HTTP server in an iframe instead.
 
 ### Language Servers
 
@@ -98,6 +102,7 @@ The AXAML files in the VS Code are showed with document outlines, allowing you t
 >
 > - Report many warnings (in AXSG0111 category or others). Please ignore them.
 > - Long delay before the first change to semantic highlighting and completion.
+> - The experimental hot reload based previewer integration is disabled due to stability issues. Please use the existing TCP or HTML transport previewer integration instead.
 >
 > You can report directly to [this repo](https://github.com/wieslawsoltes/XamlToCSharpGenerator/issues).
 
