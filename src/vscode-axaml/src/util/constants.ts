@@ -38,6 +38,8 @@ export namespace AppConstants {
     export const extensionId = "lextudio.vscode-axaml";
 
     export const newProjectCommandId = "axaml.newProject";
+
+    export const previewerTransportModeKey = "axaml.previewer.transportMode";
 }
 
 export default AppConstants;

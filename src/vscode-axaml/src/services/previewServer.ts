@@ -1,7 +1,7 @@
 import * as net from "net";
 import { logger } from "../util/utilities";
 import { EventDispatcher, IEvent } from "strongly-typed-events";
-import { Messages } from "./messageParser";
+import { FrameData, Messages } from "./messageParser";
 
 import * as sm from "../models/solutionModel";
 
@@ -25,6 +25,7 @@ export class PreviewServer implements IPreviewServer {
 
 		this._onReady = new EventDispatcher<IPreviewServer, void>(); // Remove all subscribers
 		this._onError = new EventDispatcher<IPreviewServer, Error>();
+		this._onFrame = new EventDispatcher<IPreviewServer, FrameData>();
 
 		this._server.listen(this._port, this._host, () =>
 			logger.info(`Preview server listening on port ${this._port}`)
@@ -35,29 +36,11 @@ export class PreviewServer implements IPreviewServer {
 	handleSocketEvents(socket: net.Socket) {
 		logger.info(`Preview server connected on port ${socket.localPort}`);
 		this._socket = socket;
+		this._socketBuffer = Buffer.alloc(0);
 
 		socket.on("data", (data) => {
-			this._onMessage.dispatch(this, data);
-			const msg = Messages.parseIncomingMessage(data);
-			logger.info(JSON.stringify(msg.message));
-			if (msg.type === Messages.startDesignerSessionMessageId) {
-				logger.info("Start designer session message received.");
-				const pixelFormat = Messages.clientSupportedPixelFormatsMessage();
-				socket.write(pixelFormat);
-				logger.info("Sent client supported pixel formats.");
-
-				// TODO: Investigate this oddity
-				// const renderInfo = Messages.clientRenderInfoMessage();
-				// socket.write(renderInfo);
-			} else if (msg.type === Messages.updateXamlResultMessageId) {
-				logger.info("XAML update completed");
-				this._isReady = true;
-				this._onReady.dispatch((this as unknown) as IPreviewServer);
-			} else if (msg.type === Messages.htmlTransportStartedMessageId) {
-				logger.info("HTML transport started");
-			} else {
-				logger.info("msg: " + msg.type);
-			}
+			this._socketBuffer = Buffer.concat([this._socketBuffer, data]);
+			this._processBuffer(socket);
 		});
 
 		socket.on("close", () => {
@@ -70,6 +53,51 @@ export class PreviewServer implements IPreviewServer {
 			logger.error(`Preview server error: ${error}`);
 			logger.show();
 		});
+	}
+
+	/** Reassemble TCP stream into discrete protocol messages. */
+	private _processBuffer(socket: net.Socket) {
+		while (this._socketBuffer.length >= 20) {
+			const bodyLen = this._socketBuffer.readUInt32LE(0);
+			const totalLen = 20 + bodyLen;
+			if (this._socketBuffer.length < totalLen) {
+				break; // Wait for more data
+			}
+			const message = this._socketBuffer.slice(0, totalLen);
+			this._socketBuffer = this._socketBuffer.slice(totalLen);
+			this._handleMessage(socket, message);
+		}
+	}
+
+	private _handleMessage(socket: net.Socket, data: Buffer) {
+		this._onMessage.dispatch(this, data);
+		const type = data.messageTypeId();
+
+		if (type === Messages.startDesignerSessionMessageId) {
+			logger.info("Start designer session message received.");
+			socket.write(Messages.clientSupportedPixelFormatsMessage());
+			logger.info("Sent client supported pixel formats.");
+			socket.write(Messages.clientRenderInfoMessage(this._dpiX, this._dpiY));
+			logger.info(`Sent client render info (dpi=${this._dpiX}).`);
+		} else if (type === Messages.frameMessageId) {
+			try {
+				const doc = data.document();
+				const frame = Messages.parseFrameData(doc);
+				logger.info(`Frame received: ${frame.width}×${frame.height} seq=${frame.sequenceId}`);
+				socket.write(Messages.frameReceivedMessage(frame.sequenceId));
+				this._onFrame.dispatch((this as unknown) as IPreviewServer, frame);
+			} catch (e: any) {
+				logger.error(`Failed to parse frame: ${e.message}`);
+			}
+		} else if (type === Messages.updateXamlResultMessageId) {
+			logger.info("XAML update completed");
+			this._isReady = true;
+			this._onReady.dispatch((this as unknown) as IPreviewServer);
+		} else if (type === Messages.htmlTransportStartedMessageId) {
+			logger.info("HTML transport started");
+		} else {
+			logger.info("msg: " + type);
+		}
 	}
 
 	/**
@@ -89,6 +117,19 @@ export class PreviewServer implements IPreviewServer {
 
 	public get isReady() {
 		return this._isReady;
+	}
+
+	/**
+	 * Sends a ClientRenderInfoMessage to the previewer, requesting a re-render at the given DPI.
+	 * Call this when the user changes the zoom level in TCP mode.
+	 */
+	public sendClientRenderInfo(dpiX: number, dpiY: number) {
+		this._dpiX = dpiX;
+		this._dpiY = dpiY;
+		if (this._socket && !this._socket.destroyed) {
+			this._socket.write(Messages.clientRenderInfoMessage(dpiX, dpiY));
+			logger.info(`Sent client render info (dpiX=${dpiX}, dpiY=${dpiY})`);
+		}
 	}
 
 	/**
@@ -140,9 +181,14 @@ export class PreviewServer implements IPreviewServer {
 		return this._onMessage.asEvent();
 	}
 
+	public get onFrame(): IEvent<IPreviewServer, FrameData> {
+		return this._onFrame.asEvent();
+	}
+
 	_onMessage = new EventDispatcher<IPreviewServer, Buffer>();
 	_onReady = new EventDispatcher<IPreviewServer, void>();
 	_onError = new EventDispatcher<IPreviewServer, Error>();
+	_onFrame = new EventDispatcher<IPreviewServer, FrameData>();
 
 	public get onReady(): IEvent<IPreviewServer, void> {
 		return this._onReady.asEvent();
@@ -158,8 +204,11 @@ export class PreviewServer implements IPreviewServer {
 
 	_server: net.Server;
 	_socket: net.Socket | undefined;
+	_socketBuffer: Buffer = Buffer.alloc(0);
 	_host = "127.0.0.1";
 	private _isReady = false;
+	private _dpiX = 96.0;
+	private _dpiY = 96.0;
 
 	private static _instance: PreviewServer;
 

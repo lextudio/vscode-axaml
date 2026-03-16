@@ -54,9 +54,14 @@ export class PreviewerProcess implements Command {
 			return previewerData;
 		}
 
-		const httpPort = await portfinder.getPortPromise();
-		const bsonPort = httpPort + 1; //await portfinder.getPortPromise({ startPort: 9000 });
-		const htmlUrl = `${AppConstants.htmlUrl}:${httpPort}`;
+		const transportMode = vscode.workspace.getConfiguration()
+			.get<string>(AppConstants.previewerTransportModeKey, "html") as "html" | "tcp";
+		const isTcp = transportMode === "tcp";
+
+		const firstPort = await portfinder.getPortPromise();
+		const bsonPort = isTcp ? firstPort : firstPort + 1;
+		const httpPort = isTcp ? 0 : firstPort;
+		const htmlUrl = isTcp ? "" : `${AppConstants.htmlUrl}:${httpPort}`;
 		const assemblyPath = fileData.targetPath;
 
 		const server = PreviewServer.getInstance(assemblyPath, bsonPort);
@@ -71,8 +76,10 @@ export class PreviewerProcess implements Command {
 			`--depsfile "${previewParams.projectDepsFilePath}" "${previewParams.previewerPath}"`,
 			"--method avalonia-remote",
 			`--transport tcp-bson://${AppConstants.localhost}:${bsonPort}/`,
-			"--method html",
-			`--html-url ${htmlUrl}`,
+			...(isTcp ? [] : [
+				"--method html",
+				`--html-url ${htmlUrl}`,
+			]),
 			previewParams.targetPath.putInQuotes(),
 		];
 
@@ -84,14 +91,14 @@ export class PreviewerProcess implements Command {
 
 			previewer.on("spawn", () => {
 				util.logger.info(`Previewer process started with args: ${previewerArgs}`);
-				let wsAddress = AppConstants.webSocketAddress(httpPort);
 				let previewerData: PreviewerData = {
 					file: mainUri,
 					previewerUrl: htmlUrl,
 					assetsAvailable: true,
 					pid: previewer.pid,
-					wsAddress: wsAddress,
-					targetPath: previewParams.targetPath
+					wsAddress: isTcp ? "" : AppConstants.webSocketAddress(httpPort),
+					targetPath: previewParams.targetPath,
+					transportMode,
 				};
 				this._processManager.addProcess(assemblyPath, previewerData);
 				resolve(previewerData);

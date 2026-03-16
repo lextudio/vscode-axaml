@@ -3,6 +3,7 @@ import path = require("path");
 import { logger } from "../util/utilities";
 import { PreviewProcessManager } from "../previewProcessManager";
 import { PreviewServer } from "../services/previewServer";
+import { Messages } from "../services/messageParser";
 
 export class WebPreviewerPanel {
 	public static currentPanel: WebPreviewerPanel | undefined;
@@ -13,6 +14,7 @@ export class WebPreviewerPanel {
 	private readonly _fileUrl: vscode.Uri;
 	private _isLoading: boolean = false;
 	private _isError: boolean = false;
+	private readonly _mode: "html" | "tcp";
 
 	private _disposables: vscode.Disposable[] = [];
 
@@ -22,7 +24,8 @@ export class WebPreviewerPanel {
 		extensionUri: vscode.Uri,
 		targetPath: string,
 		processManager?: PreviewProcessManager,
-		previewColumn: vscode.ViewColumn = vscode.ViewColumn.Active
+		previewColumn: vscode.ViewColumn = vscode.ViewColumn.Active,
+		mode: "html" | "tcp" = "html"
 	) {
 		const column =
 			previewColumn || vscode.window.activeTextEditor?.viewColumn;
@@ -48,7 +51,8 @@ export class WebPreviewerPanel {
 			url,
 			fileUri,
 			targetPath,
-			processManager
+			processManager,
+			mode
 		);
 
 		this.updateTitle(fileUri);
@@ -78,16 +82,29 @@ export class WebPreviewerPanel {
 		url: string,
 		fileUrl: vscode.Uri,
 		targetPath: string,
-		private readonly _processManager?: PreviewProcessManager
+		private readonly _processManager?: PreviewProcessManager,
+		mode: "html" | "tcp" = "html"
 	) {
 		this._panel = panel;
 		this._fileUrl = fileUrl;
+		this._mode = mode;
+
 		const server = PreviewServer.getInstanceByAssemblyName(targetPath)!;
+
+		if (this._mode === "tcp") {
+			this._setupTcpMode(server);
+		} else {
+			this._setupHtmlMode(url, server);
+		}
+
+		// Listen for when the panel is disposed
+		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+	}
+
+	private _setupHtmlMode(url: string, server: PreviewServer) {
 		if (!server?.isReady) {
 			this._isLoading = true;
-			// Show loading spinner while waiting for server			
 			this._panel.webview.html = this._getLoadingHtml();
-			// Subscribe to onReady event to update webview when ready
 			server.onReady.subscribe(() => {
 				this._isLoading = false;
 				this._update(url);
@@ -99,10 +116,34 @@ export class WebPreviewerPanel {
 		} else {
 			this._update(url);
 		}
+	}
 
-		// Listen for when the panel is disposed
-		// This happens when the user closes the panel or when the panel is closed programmatically
-		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+	private _setupTcpMode(server: PreviewServer) {
+		// Show canvas shell immediately; frames arrive via onFrame events.
+		this._panel.webview.html = this._getCanvasHtml();
+
+		// Forward raw frames from the TCP server to the webview canvas.
+		const frameSub = server.onFrame.subscribe((_, frame) => {
+			if (this._isError) { return; }
+			const rgba = Messages.toRgba(frame);
+			this._panel.webview.postMessage({ type: "frame", width: frame.width, height: frame.height, rgba });
+		});
+		this._disposables.push({ dispose: () => frameSub() });
+
+		// Surface XAML errors in the panel.
+		server.onError.subscribe((_, error) => {
+			this._isError = true;
+			this._panel.webview.html = this._getErrorHtml(error);
+		});
+
+		// Handle scale changes from the webview: send new DPI to previewer.
+		const msgSub = this._panel.webview.onDidReceiveMessage((msg) => {
+			if (msg.type === "setScale" && typeof msg.scale === "number") {
+				const dpi = 96 * msg.scale;
+				server.sendClientRenderInfo(dpi, dpi);
+			}
+		});
+		this._disposables.push(msgSub);
 	}
 
 	/**
@@ -129,8 +170,16 @@ export class WebPreviewerPanel {
 		if (this._isError) {
 			return;
 		}
+		if (this._mode === "tcp") {
+			// Canvas HTML is already set in constructor; nothing to update on XAML switch.
+			return;
+		}
 		this._panel.webview.html = this._getHtmlForWebview(url);
 	}
+
+	// ---------------------------------------------------------------------------
+	// HTML (iframe) mode
+	// ---------------------------------------------------------------------------
 
 	private _getHtmlForWebview(url: string): string {
 		const body = `
@@ -193,6 +242,71 @@ export class WebPreviewerPanel {
 		return this._getHtmlShell(body);
 	}
 
+	// ---------------------------------------------------------------------------
+	// TCP (canvas) mode
+	// ---------------------------------------------------------------------------
+
+	private _getCanvasHtml(): string {
+		const body = `
+<div class="toolbar" role="toolbar" aria-label="Preview controls">
+	<button id="resetScaleBtn" class="btn icon" title="Reset scale to 100%" aria-label="Reset scale to 100%">
+		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+			<text x="12" y="14" text-anchor="middle" dominant-baseline="middle" font-size="16" font-weight="700" fill="currentColor">1:1</text>
+		</svg>
+	</button>
+	<label class="scale-group">
+		<input type="range" id="scaleSlider" min="25" max="200" value="100" aria-label="Scale" />
+		<span id="scaleLabel" class="scale-label">100%</span>
+	</label>
+</div>
+<div id="canvasContainer">
+	<canvas id="preview"></canvas>
+</div>
+<script>
+	var vscode = acquireVsCodeApi();
+	var canvas = document.getElementById('preview');
+	var ctx = canvas.getContext('2d');
+	var scaleSlider = document.getElementById('scaleSlider');
+	var scaleLabel = document.getElementById('scaleLabel');
+	var resetScaleBtn = document.getElementById('resetScaleBtn');
+	var scale = 1.0;
+	var debounceTimer = null;
+
+	function applyScale(newScale) {
+		scale = newScale;
+		scaleLabel.textContent = Math.round(scale * 100) + '%';
+		scaleSlider.value = String(Math.round(scale * 100));
+		// Notify the extension to re-render at the new DPI.
+		// Debounce so rapid slider drags don't flood the previewer.
+		clearTimeout(debounceTimer);
+		debounceTimer = setTimeout(function() {
+			vscode.postMessage({ type: 'setScale', scale: scale });
+		}, 80);
+	}
+
+	scaleSlider.addEventListener('input', function() {
+		applyScale(Number(scaleSlider.value) / 100);
+	});
+	resetScaleBtn.addEventListener('click', function() { applyScale(1.0); });
+
+	window.addEventListener('message', function(event) {
+		var msg = event.data;
+		if (msg.type === 'frame') {
+			// Resize canvas to exact frame dimensions and paint the RGBA pixels.
+			canvas.width = msg.width;
+			canvas.height = msg.height;
+			var imageData = new ImageData(new Uint8ClampedArray(msg.rgba), msg.width, msg.height);
+			ctx.putImageData(imageData, 0, 0);
+		}
+	});
+</script>`;
+		return this._getHtmlShell(body);
+	}
+
+	// ---------------------------------------------------------------------------
+	// Shared shell
+	// ---------------------------------------------------------------------------
+
 	private _getHtmlShell(bodyInner: string): string {
 		return `
 <!DOCTYPE html>
@@ -251,8 +365,12 @@ export class WebPreviewerPanel {
 		.scale-group { display: inline-flex; align-items: center; gap: 8px; }
 		.scale-group input[type="range"] { height: 2px; }
 		.scale-label { min-width: 44px; text-align: right; color: var(--vscode-editor-foreground); opacity: 0.8; font-size: 12px; }
+		/* HTML mode */
 		#scalable { margin-top: var(--toolbar-height); transform-origin: top left; transform: scale(1); width: max-content; height: max-content; z-index: 0; }
 		iframe { width: 7680px; height: 4320px; border: none; display: block; }
+		/* TCP mode */
+		#canvasContainer { margin-top: var(--toolbar-height); display: inline-block; }
+		canvas { display: block; image-rendering: pixelated; }
 		/* extras used by loading/error */
 		.center { width: 100%; height: calc(100% - var(--toolbar-height)); display: flex; align-items: center; justify-content: center; }
 		.spinner { width: 44px; height: 44px; border: 6px solid #eee; border-top: 6px solid var(--vscode-focusBorder, #0078d4); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 14px; }

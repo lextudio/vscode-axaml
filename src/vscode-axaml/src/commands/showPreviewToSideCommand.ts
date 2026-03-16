@@ -6,6 +6,7 @@ import { PreviewProcessManager } from "../previewProcessManager";
 import { WebPreviewerPanel } from "../panels/webPreviewerPanel";
 import AppConstants from "../util/constants";
 
+
 export class ShowPreviewToSideCommand implements Command {
 	constructor(
 		private readonly _context: vscode.ExtensionContext,
@@ -74,13 +75,18 @@ export function showPreview(
 			(vscode.window.activeTextEditor && vscode.window.activeTextEditor.viewColumn) || vscode.ViewColumn.One;
 		const column = settings.sideBySide ? vscode.ViewColumn.Beside : resourceColumn;
 
+		const mode = (previewerData.transportMode
+			?? vscode.workspace.getConfiguration().get<string>(AppConstants.previewerTransportModeKey, "html")
+		) as "html" | "tcp";
+
 		WebPreviewerPanel.createOrShow(
 			previewerData.previewerUrl!,
 			previewerData.file,
 			context.extensionUri,
 			previewerData.targetPath!,
 			processManager,
-			column
+			column,
+			mode
 		);
 	}
 }

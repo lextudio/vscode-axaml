@@ -3,7 +3,7 @@
   "displayName": "VS Code Tools for AXAML by LeXtudio Inc.",
   "description": "VS Code extension providing AXAML tooling, visual designer and live previewer. Published by LeXtudio Inc.",
   "publisher": "lextudio",
-  "version": "11.0.57",
+  "version": "11.0.58",
   "license": "MIT",
   "preview": true,
   "qna": "false",
@@ -402,6 +402,20 @@
             "default": false,
             "description": "Run 'dotnet --info' before building previewer assets to capture environment diagnostics.",
             "scope": "workspace"
+          },
+          "axaml.previewer.transportMode": {
+            "type": "string",
+            "enum": [
+              "html",
+              "tcp"
+            ],
+            "enumDescriptions": [
+              "Display the preview via the previewer's built-in HTTP server embedded in an iframe.",
+              "Receive raw pixel frames over TCP-BSON and render them on a canvas. Enables DPI-aware scaling."
+            ],
+            "default": "html",
+            "description": "Transport mode for the XAML previewer. 'html' embeds the previewer's HTTP server in an iframe. 'tcp' receives pixel frames directly over BSON and renders them on a canvas, with sharper DPI-aware scaling.",
+            "scope": "window"
           },
           "axaml.completion.buildConfigurationPreference": {
             "type": "string",

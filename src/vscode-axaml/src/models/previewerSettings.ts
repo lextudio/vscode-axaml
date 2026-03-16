@@ -11,4 +11,5 @@ export interface PreviewerData {
 	readonly wsAddress?: string;
 	readonly assetsAvailable?: boolean;
 	readonly targetPath?: string;
+	readonly transportMode?: "html" | "tcp";
 }
