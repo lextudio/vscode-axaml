@@ -50,7 +50,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/src/XamlToCSharpGenerator/XamlToCSharpGenerator.csproj",
+                "${workspaceFolder}/src/XamlToCSharpGenerator/src/XamlToCSharpGenerator/XamlToCSharpGenerator.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary",
                 "/property:Configuration=Release",

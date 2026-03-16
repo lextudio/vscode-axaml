@@ -292,33 +292,40 @@ export class WebPreviewerPanel {
 		const body = `
 <div class="toolbar" role="toolbar" aria-label="Preview controls">
 	<label class="zoom-label" for="zoomInput">Zoom</label>
-	<input type="text" id="zoomInput" class="zoom-input" value="100%" list="zoomLevels"
-		aria-label="Zoom level" autocomplete="off" spellcheck="false" />
-	<datalist id="zoomLevels">
-		<option value="Fit All"></option>
-		<option value="Fit Width"></option>
-		<option value="12.5%"></option>
-		<option value="25%"></option>
-		<option value="33%"></option>
-		<option value="50%"></option>
-		<option value="66%"></option>
-		<option value="100%"></option>
-		<option value="125%"></option>
-		<option value="150%"></option>
-		<option value="200%"></option>
-		<option value="300%"></option>
-		<option value="400%"></option>
-		<option value="800%"></option>
-	</datalist>
+	<div class="zoom-combo" id="zoomCombo">
+		<input type="text" id="zoomInput" class="zoom-input" value="100%"
+			aria-label="Zoom level" autocomplete="off" spellcheck="false" />
+		<button id="zoomDropBtn" class="zoom-drop-btn" tabindex="-1" aria-label="Open zoom list">&#9660;</button>
+		<ul id="zoomDropdown" class="zoom-dropdown" hidden role="listbox">
+			<li data-value="Fit All">Fit All</li>
+			<li data-value="Fit Width">Fit Width</li>
+			<li class="zoom-sep" aria-hidden="true"></li>
+			<li data-value="12.5%">12.5%</li>
+			<li data-value="25%">25%</li>
+			<li data-value="33%">33%</li>
+			<li data-value="50%">50%</li>
+			<li data-value="66%">66%</li>
+			<li data-value="100%">100%</li>
+			<li data-value="125%">125%</li>
+			<li data-value="150%">150%</li>
+			<li data-value="200%">200%</li>
+			<li data-value="300%">300%</li>
+			<li data-value="400%">400%</li>
+			<li data-value="800%">800%</li>
+		</ul>
+	</div>
 </div>
 <div id="canvasContainer">
 	<canvas id="preview"></canvas>
 </div>
+<div id="zoomHint">Alt + Scroll to zoom</div>
 <script>
 	var vscode = acquireVsCodeApi();
 	var canvas = document.getElementById('preview');
 	var ctx = canvas.getContext('2d');
 	var zoomInput = document.getElementById('zoomInput');
+	var zoomDropBtn = document.getElementById('zoomDropBtn');
+	var zoomDropdown = document.getElementById('zoomDropdown');
 	var container = document.getElementById('canvasContainer');
 	var scale = 1.0;
 	var debounceTimer = null;
@@ -381,17 +388,50 @@ export class WebPreviewerPanel {
 		}
 	}
 
+	// ---------- custom dropdown (replaces native <datalist> which mispositiosns in webviews) ----------
+	function openDropdown() {
+		zoomDropdown.removeAttribute('hidden');
+		zoomInput.setAttribute('aria-expanded', 'true');
+	}
+	function closeDropdown() {
+		zoomDropdown.setAttribute('hidden', '');
+		zoomInput.removeAttribute('aria-expanded');
+	}
+	function toggleDropdown() {
+		if (zoomDropdown.hasAttribute('hidden')) { openDropdown(); } else { closeDropdown(); }
+	}
+
+	zoomDropBtn.addEventListener('mousedown', function(e) {
+		e.preventDefault(); // keep focus on input
+		toggleDropdown();
+	});
+	zoomInput.addEventListener('focus', openDropdown);
+	zoomInput.addEventListener('blur', function() {
+		// Delay so a click on a list item fires before the list hides.
+		setTimeout(closeDropdown, 120);
+	});
+	zoomDropdown.addEventListener('mousedown', function(e) {
+		var li = e.target.closest('li[data-value]');
+		if (!li) { return; }
+		e.preventDefault();
+		zoomInput.value = li.dataset.value;
+		parseZoomInput(li.dataset.value);
+		closeDropdown();
+	});
+	// ------------------------------------------------------------------------------------------------
+
 	zoomInput.addEventListener('change', function() {
 		parseZoomInput(zoomInput.value);
 	});
 	zoomInput.addEventListener('keydown', function(e) {
-		if (e.key === 'Enter') { parseZoomInput(zoomInput.value); zoomInput.blur(); }
-		if (e.key === 'Escape') { zoomInput.value = Math.round(scale * 100) + '%'; zoomInput.blur(); }
+		if (e.key === 'Enter')  { parseZoomInput(zoomInput.value); zoomInput.blur(); closeDropdown(); }
+		if (e.key === 'Escape') { zoomInput.value = Math.round(scale * 100) + '%'; zoomInput.blur(); closeDropdown(); }
 	});
 
-	// Ctrl+Scroll wheel zoom — ±0.25 per notch, matching VS extension.
+	// Alt+Scroll wheel zoom — ±0.25 per notch.
+	// (Ctrl+Scroll is intercepted by VS Code itself and never reaches the webview.)
 	window.addEventListener('wheel', function(e) {
-		if (!e.ctrlKey) { return; }
+		if (!e.altKey) { return; }
 		e.preventDefault();
 		var delta = e.deltaY < 0 ? 0.25 : -0.25;
 		applyScale(scale + delta);
@@ -478,10 +518,15 @@ export class WebPreviewerPanel {
 		.btn:focus-visible { outline: 2px solid var(--vscode-focusBorder); outline-offset: 2px; }
 		/* Zoom combo (TCP mode) */
 		.zoom-label { font-size: 12px; color: var(--vscode-editor-foreground); opacity: 0.8; white-space: nowrap; }
+		.zoom-combo {
+			position: relative;
+			display: inline-flex;
+			align-items: center;
+		}
 		.zoom-input {
-			width: 90px;
+			width: 82px;
 			height: 22px;
-			padding: 0 6px;
+			padding: 0 22px 0 6px;
 			border-radius: 3px;
 			border: 1px solid var(--vscode-input-border, rgba(255,255,255,0.18));
 			background: var(--vscode-input-background);
@@ -492,6 +537,43 @@ export class WebPreviewerPanel {
 			box-sizing: border-box;
 		}
 		.zoom-input:focus { outline: 1px solid var(--vscode-focusBorder); border-color: var(--vscode-focusBorder); }
+		.zoom-drop-btn {
+			position: absolute;
+			right: 0;
+			width: 20px;
+			height: 22px;
+			padding: 0;
+			border: none;
+			background: transparent;
+			color: var(--vscode-input-foreground);
+			cursor: pointer;
+			font-size: 9px;
+			display: flex; align-items: center; justify-content: center;
+		}
+		.zoom-drop-btn:hover { background: var(--vscode-list-hoverBackground); }
+		.zoom-dropdown {
+			position: absolute;
+			top: 100%;
+			left: 0;
+			min-width: 100%;
+			margin: 2px 0 0;
+			padding: 4px 0;
+			background: var(--vscode-dropdown-background, var(--vscode-input-background));
+			border: 1px solid var(--vscode-dropdown-border, var(--vscode-input-border));
+			border-radius: 3px;
+			box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+			list-style: none;
+			z-index: 100;
+		}
+		.zoom-dropdown li[data-value] {
+			padding: 3px 12px;
+			font-size: 12px;
+			cursor: pointer;
+			color: var(--vscode-dropdown-foreground, var(--vscode-input-foreground));
+			white-space: nowrap;
+		}
+		.zoom-dropdown li[data-value]:hover { background: var(--vscode-list-hoverBackground); }
+		.zoom-sep { height: 1px; background: var(--vscode-editorGroup-border); margin: 3px 0; }
 		/* HTML mode */
 		.scale-group { display: inline-flex; align-items: center; gap: 8px; }
 		.scale-group input[type="range"] { height: 2px; }
@@ -514,6 +596,16 @@ export class WebPreviewerPanel {
 			image-rendering: pixelated;
 			flex-shrink: 0;
 			box-shadow: 0 4px 16px rgba(0,0,0,0.55);
+		}
+		#zoomHint {
+			position: fixed;
+			bottom: 10px;
+			right: 14px;
+			font-size: 24px;
+			color: var(--vscode-editor-foreground);
+			opacity: 0.45;
+			pointer-events: none;
+			user-select: none;
 		}
 		/* extras used by loading/error */
 		.center { width: 100%; height: calc(100% - var(--toolbar-height)); display: flex; align-items: center; justify-content: center; }
