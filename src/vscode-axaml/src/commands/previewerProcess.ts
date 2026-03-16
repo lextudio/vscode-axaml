@@ -83,7 +83,9 @@ export class PreviewerProcess implements Command {
 			previewParams.targetPath.putInQuotes(),
 		];
 
-		return new Promise((resolve, reject) => {
+		const startTime = Date.now();
+
+		return new Promise<PreviewerData>((resolve, reject) => {
 			const previewer = spawn("dotnet", previewerArgs, {
 				env: process.env,
 				shell: true,
@@ -91,7 +93,7 @@ export class PreviewerProcess implements Command {
 
 			previewer.on("spawn", () => {
 				util.logger.info(`Previewer process started with args: ${previewerArgs}`);
-				let previewerData: PreviewerData = {
+				const previewerData: PreviewerData = {
 					file: mainUri,
 					previewerUrl: htmlUrl,
 					assetsAvailable: true,
@@ -104,20 +106,49 @@ export class PreviewerProcess implements Command {
 				resolve(previewerData);
 			});
 
+			// OS-level failure (dotnet not on PATH, permission denied, etc.)
+			previewer.on("error", (err) => {
+				util.logger.error(`Failed to start previewer: ${err.message}`);
+				this._processManager.removeProcess(assemblyPath);
+				reject(err);
+			});
+
 			previewer.stdout.on("data", (data) => {
 				util.logger.info(data.toString());
 			});
 
+			// Log stderr but never reject — .NET runtimes write warnings here
 			previewer.stderr.on("data", (data) => {
 				util.logger.error(data.toString());
-				reject(data.toString());
 			});
 
 			previewer.on("close", (code, signal) => {
-				util.logger.info(`Previewer process exited with code ${code} and signal ${signal}`);
-				if (signal === "SIGABRT") {
-					util.logger.info(`Previewer process was aborted`);
-					server.dispatchError(signal);
+				const lifetime = Date.now() - startTime;
+				util.logger.info(
+					`Previewer process exited: code=${code} signal=${signal} lifetime=${lifetime}ms`
+				);
+
+				// Clean up the stale entry so the next preview attempt can start fresh
+				this._processManager.removeProcess(assemblyPath);
+
+				const isAbnormal = code !== 0 || signal !== null;
+				if (isAbnormal) {
+					const reason = signal
+						? `signal ${signal}`
+						: `exit code ${code}`;
+					server.dispatchError(reason);
+
+					// Fast-fail: process died within 5 s — likely a startup error
+					if (lifetime < 5000) {
+						vscode.window.showErrorMessage(
+							`Previewer failed to start (${reason}). Check the AXAML output log for details.`,
+							"Show Log"
+						).then((choice) => {
+							if (choice === "Show Log") {
+								util.logger.show();
+							}
+						});
+					}
 				}
 			});
 		});

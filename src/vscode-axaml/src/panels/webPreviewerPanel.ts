@@ -105,11 +105,25 @@ export class WebPreviewerPanel {
 		if (!server?.isReady) {
 			this._isLoading = true;
 			this._panel.webview.html = this._getLoadingHtml();
+
+			const timeout = setTimeout(() => {
+				if (this._isLoading) {
+					this._isLoading = false;
+					this._isError = true;
+					this._panel.webview.html = this._getErrorHtml(
+						new Error("Previewer did not become ready within 30 seconds.")
+					);
+				}
+			}, 30_000);
+
 			server.onReady.subscribe(() => {
+				clearTimeout(timeout);
 				this._isLoading = false;
 				this._update(url);
 			});
 			server.onError.subscribe((_, error) => {
+				clearTimeout(timeout);
+				this._isLoading = false;
 				this._isError = true;
 				this._panel.webview.html = this._getErrorHtml(error);
 			});
@@ -119,19 +133,39 @@ export class WebPreviewerPanel {
 	}
 
 	private _setupTcpMode(server: PreviewServer) {
-		// Show canvas shell immediately; frames arrive via onFrame events.
-		this._panel.webview.html = this._getCanvasHtml();
+		// Show loading state until first frame arrives.
+		this._isLoading = true;
+		this._panel.webview.html = this._getLoadingHtml();
 
-		// Forward raw frames from the TCP server to the webview canvas.
+		const timeout = setTimeout(() => {
+			if (this._isLoading) {
+				this._isLoading = false;
+				this._isError = true;
+				this._panel.webview.html = this._getErrorHtml(
+					new Error("Previewer did not send a frame within 30 seconds.")
+				);
+			}
+		}, 30_000);
+
+		// Switch to canvas on first frame, then forward subsequent frames.
+		let canvasReady = false;
 		const frameSub = server.onFrame.subscribe((_, frame) => {
 			if (this._isError) { return; }
+			if (!canvasReady) {
+				clearTimeout(timeout);
+				this._isLoading = false;
+				canvasReady = true;
+				this._panel.webview.html = this._getCanvasHtml();
+			}
 			const rgba = Messages.toRgba(frame);
 			this._panel.webview.postMessage({ type: "frame", width: frame.width, height: frame.height, rgba });
 		});
 		this._disposables.push({ dispose: () => frameSub() });
 
-		// Surface XAML errors in the panel.
+		// Surface crashes / errors in the panel.
 		server.onError.subscribe((_, error) => {
+			clearTimeout(timeout);
+			this._isLoading = false;
 			this._isError = true;
 			this._panel.webview.html = this._getErrorHtml(error);
 		});
@@ -378,6 +412,8 @@ export class WebPreviewerPanel {
 		.message { color: var(--vscode-editor-foreground, #fff); font-size: 13px; text-align: center; font-family: sans-serif; }
 		.card { background: color-mix(in srgb, var(--vscode-editorWidget-background) 92%, transparent); border: 1px solid var(--vscode-editorWidget-border); padding: 12px 16px; border-radius: var(--radius); box-shadow: 0 2px 8px rgba(0,0,0,.2); max-width: 520px; }
 		.card .title { font-weight: 600; margin-bottom: 6px; }
+		.card .error-msg { font-family: monospace; font-size: 12px; background: rgba(255,0,0,.08); border: 1px solid rgba(255,0,0,.2); border-radius: 4px; padding: 6px 8px; margin: 6px 0; word-break: break-word; }
+		.card .hint { font-size: 12px; opacity: 0.7; margin-top: 8px; }
 	</style>
 </head>
 <body>
@@ -403,7 +439,8 @@ ${bodyInner}
 	<div class="center">
 		<div class="card">
 			<div class="title">Preview failed</div>
-			<div>${error.message}</div>
+			<div class="error-msg">${error.message}</div>
+			<div class="hint">Close this panel, fix the issue, then run <strong>Show Preview</strong> again.</div>
 		</div>
 	</div>`;
 		return this._getHtmlShell(body);

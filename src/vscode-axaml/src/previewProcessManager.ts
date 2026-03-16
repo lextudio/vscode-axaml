@@ -45,6 +45,15 @@ export class PreviewProcessManager {
   }
 
   /**
+   * Removes a process entry from the map without sending a kill signal.
+   * Use this when the process has already exited on its own (e.g. crash).
+   * @param file The map key used when the process was added.
+   */
+  public removeProcess(file: string) {
+    this._processes.delete(file);
+  }
+
+  /**
    * Ends all preview processes.
    */
   public killPreviewProcess() {

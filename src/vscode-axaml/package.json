@@ -413,7 +413,7 @@
               "Display the preview via the previewer's built-in HTTP server embedded in an iframe.",
               "Receive raw pixel frames over TCP-BSON and render them on a canvas. Enables DPI-aware scaling."
             ],
-            "default": "html",
+            "default": "tcp",
             "description": "Transport mode for the XAML previewer. 'html' embeds the previewer's HTTP server in an iframe. 'tcp' receives pixel frames directly over BSON and renders them on a canvas, with sharper DPI-aware scaling.",
             "scope": "window"
           },
