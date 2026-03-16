@@ -291,15 +291,25 @@ export class WebPreviewerPanel {
 	private _getCanvasHtml(): string {
 		const body = `
 <div class="toolbar" role="toolbar" aria-label="Preview controls">
-	<button id="resetScaleBtn" class="btn icon" title="Reset scale to 100%" aria-label="Reset scale to 100%">
-		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-			<text x="12" y="14" text-anchor="middle" dominant-baseline="middle" font-size="16" font-weight="700" fill="currentColor">1:1</text>
-		</svg>
-	</button>
-	<label class="scale-group">
-		<input type="range" id="scaleSlider" min="25" max="200" value="100" aria-label="Scale" />
-		<span id="scaleLabel" class="scale-label">100%</span>
-	</label>
+	<label class="zoom-label" for="zoomInput">Zoom</label>
+	<input type="text" id="zoomInput" class="zoom-input" value="100%" list="zoomLevels"
+		aria-label="Zoom level" autocomplete="off" spellcheck="false" />
+	<datalist id="zoomLevels">
+		<option value="Fit All"></option>
+		<option value="Fit Width"></option>
+		<option value="12.5%"></option>
+		<option value="25%"></option>
+		<option value="33%"></option>
+		<option value="50%"></option>
+		<option value="66%"></option>
+		<option value="100%"></option>
+		<option value="125%"></option>
+		<option value="150%"></option>
+		<option value="200%"></option>
+		<option value="300%"></option>
+		<option value="400%"></option>
+		<option value="800%"></option>
+	</datalist>
 </div>
 <div id="canvasContainer">
 	<canvas id="preview"></canvas>
@@ -308,42 +318,97 @@ export class WebPreviewerPanel {
 	var vscode = acquireVsCodeApi();
 	var canvas = document.getElementById('preview');
 	var ctx = canvas.getContext('2d');
-	var scaleSlider = document.getElementById('scaleSlider');
-	var scaleLabel = document.getElementById('scaleLabel');
-	var resetScaleBtn = document.getElementById('resetScaleBtn');
+	var zoomInput = document.getElementById('zoomInput');
+	var container = document.getElementById('canvasContainer');
 	var scale = 1.0;
 	var debounceTimer = null;
 	var dpr = window.devicePixelRatio || 1;
+	// Last known logical frame dimensions (CSS px at 100 % zoom).
+	var frameLogicalW = 0;
+	var frameLogicalH = 0;
 
 	// Tell the extension our display DPI so it requests a correctly sized frame.
 	vscode.postMessage({ type: 'init', devicePixelRatio: dpr });
 
-	function applyScale(newScale) {
-		scale = newScale;
-		scaleLabel.textContent = Math.round(scale * 100) + '%';
-		scaleSlider.value = String(Math.round(scale * 100));
-		// Debounce rapid slider drags so we don't flood the previewer.
+	function clampScale(s) {
+		return Math.min(8.0, Math.max(0.125, s));
+	}
+
+	function applyScale(newScale, updateInput) {
+		scale = clampScale(newScale);
+		if (updateInput !== false) {
+			zoomInput.value = Math.round(scale * 100) + '%';
+		}
+		// Resize CSS box to match zoom level.
+		if (frameLogicalW > 0) {
+			canvas.style.width  = (frameLogicalW  * scale) + 'px';
+			canvas.style.height = (frameLogicalH * scale) + 'px';
+		}
 		clearTimeout(debounceTimer);
 		debounceTimer = setTimeout(function() {
 			vscode.postMessage({ type: 'setScale', scale: scale });
 		}, 80);
 	}
 
-	scaleSlider.addEventListener('input', function() {
-		applyScale(Number(scaleSlider.value) / 100);
+	function fitAll() {
+		if (frameLogicalW <= 0) { return; }
+		var availW = container.clientWidth  - 32;
+		var availH = container.clientHeight - 32;
+		var s = Math.min(availW / frameLogicalW, availH / frameLogicalH);
+		applyScale(s, false);
+		zoomInput.value = 'Fit All';
+	}
+
+	function fitWidth() {
+		if (frameLogicalW <= 0) { return; }
+		var availW = container.clientWidth - 32;
+		var s = availW / frameLogicalW;
+		applyScale(s, false);
+		zoomInput.value = 'Fit Width';
+	}
+
+	function parseZoomInput(raw) {
+		var v = raw.trim();
+		if (v === 'Fit All')   { fitAll();   return; }
+		if (v === 'Fit Width') { fitWidth(); return; }
+		// Strip trailing % if present.
+		var num = parseFloat(v.replace('%', ''));
+		if (!isNaN(num) && num > 0) {
+			applyScale(num / 100);
+		} else {
+			// Restore previous value on bad input.
+			zoomInput.value = Math.round(scale * 100) + '%';
+		}
+	}
+
+	zoomInput.addEventListener('change', function() {
+		parseZoomInput(zoomInput.value);
 	});
-	resetScaleBtn.addEventListener('click', function() { applyScale(1.0); });
+	zoomInput.addEventListener('keydown', function(e) {
+		if (e.key === 'Enter') { parseZoomInput(zoomInput.value); zoomInput.blur(); }
+		if (e.key === 'Escape') { zoomInput.value = Math.round(scale * 100) + '%'; zoomInput.blur(); }
+	});
+
+	// Ctrl+Scroll wheel zoom — ±0.25 per notch, matching VS extension.
+	window.addEventListener('wheel', function(e) {
+		if (!e.ctrlKey) { return; }
+		e.preventDefault();
+		var delta = e.deltaY < 0 ? 0.25 : -0.25;
+		applyScale(scale + delta);
+	}, { passive: false });
 
 	window.addEventListener('message', function(event) {
 		var msg = event.data;
 		if (msg.type === 'frame') {
-			// Paint the pixel buffer at its native resolution.
-			canvas.width = msg.width;
+			// Paint at native physical resolution.
+			canvas.width  = msg.width;
 			canvas.height = msg.height;
-			// Size the CSS box so the content appears at the correct logical scale:
-			// CSS px = physical px / devicePixelRatio, giving "actual size" at 100%.
-			canvas.style.width  = (msg.width  / dpr) + 'px';
-			canvas.style.height = (msg.height / dpr) + 'px';
+			// Logical (CSS) dimensions at 100 % zoom = physical / dpr.
+			frameLogicalW = msg.width  / dpr;
+			frameLogicalH = msg.height / dpr;
+			// Apply current zoom to CSS size.
+			canvas.style.width  = (frameLogicalW  * scale) + 'px';
+			canvas.style.height = (frameLogicalH * scale) + 'px';
 			var imageData = new ImageData(new Uint8ClampedArray(msg.rgba), msg.width, msg.height);
 			ctx.putImageData(imageData, 0, 0);
 		}
@@ -411,15 +476,45 @@ export class WebPreviewerPanel {
 		.btn svg { display: block; }
 		.btn[disabled] { opacity: .5; cursor: not-allowed; }
 		.btn:focus-visible { outline: 2px solid var(--vscode-focusBorder); outline-offset: 2px; }
+		/* Zoom combo (TCP mode) */
+		.zoom-label { font-size: 12px; color: var(--vscode-editor-foreground); opacity: 0.8; white-space: nowrap; }
+		.zoom-input {
+			width: 90px;
+			height: 22px;
+			padding: 0 6px;
+			border-radius: 3px;
+			border: 1px solid var(--vscode-input-border, rgba(255,255,255,0.18));
+			background: var(--vscode-input-background);
+			color: var(--vscode-input-foreground);
+			font: inherit;
+			font-size: 12px;
+			text-align: center;
+			box-sizing: border-box;
+		}
+		.zoom-input:focus { outline: 1px solid var(--vscode-focusBorder); border-color: var(--vscode-focusBorder); }
+		/* HTML mode */
 		.scale-group { display: inline-flex; align-items: center; gap: 8px; }
 		.scale-group input[type="range"] { height: 2px; }
 		.scale-label { min-width: 44px; text-align: right; color: var(--vscode-editor-foreground); opacity: 0.8; font-size: 12px; }
-		/* HTML mode */
 		#scalable { margin-top: var(--toolbar-height); transform-origin: top left; transform: scale(1); width: max-content; height: max-content; z-index: 0; }
 		iframe { width: 7680px; height: 4320px; border: none; display: block; }
-		/* TCP mode */
-		#canvasContainer { margin-top: var(--toolbar-height); display: inline-block; }
-		canvas { display: block; image-rendering: pixelated; }
+		/* TCP mode — scrollable viewport with centred content */
+		#canvasContainer {
+			position: fixed;
+			top: var(--toolbar-height); left: 0; right: 0; bottom: 0;
+			overflow: auto;
+			display: flex;
+			align-items: flex-start;
+			justify-content: flex-start;
+			padding: 16px;
+			box-sizing: border-box;
+		}
+		canvas {
+			display: block;
+			image-rendering: pixelated;
+			flex-shrink: 0;
+			box-shadow: 0 4px 16px rgba(0,0,0,0.55);
+		}
 		/* extras used by loading/error */
 		.center { width: 100%; height: calc(100% - var(--toolbar-height)); display: flex; align-items: center; justify-content: center; }
 		.spinner { width: 44px; height: 44px; border: 6px solid #eee; border-top: 6px solid var(--vscode-focusBorder, #0078d4); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 14px; }
