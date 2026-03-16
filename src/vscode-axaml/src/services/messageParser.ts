@@ -36,7 +36,10 @@ export class Messages {
 	}
 
 	public static clientRenderInfoMessage(dpiX: number = 96.0, dpiY: number = 96.0): Buffer {
-		const message = { dpiX, dpiY };
+		// Must use BSON.Double — whole-number JS values are serialized as Int32 by default,
+		// but Metsys.Bson (used by the Avalonia previewer) reads DpiX/DpiY as double (8 bytes).
+		// An Int32 field (4 bytes) would misalign the BSON stream and crash the reader.
+		const message = { dpiX: new BSON.Double(dpiX), dpiY: new BSON.Double(dpiY) };
 		return createMessage(message, Messages.clientRenderInfoMessageId);
 	}
 
@@ -60,20 +63,22 @@ export class Messages {
 
 	/**
 	 * Parses a FrameMessage BSON document into a FrameData object.
-	 * Converts Bgra8888 pixel data to RGBA for use with Canvas ImageData.
+	 * Metsys.Bson (used by the Avalonia previewer) serializes C# property names as-is (PascalCase),
+	 * so all field lookups here use PascalCase keys.
 	 */
 	public static parseFrameData(doc: BSON.Document): FrameData {
-		const sequenceId: number = typeof doc.sequenceId === "object"
-			? (doc.sequenceId as BSON.Long).toNumber()
-			: Number(doc.sequenceId);
-		const format: number = doc.format;
-		const width: number = doc.width;
-		const height: number = doc.height;
-		const stride: number = doc.stride;
-		const dpiX: number = doc.dpiX;
-		const dpiY: number = doc.dpiY;
-		// BSON Binary — extract raw bytes
-		const binary: BSON.Binary = doc.data;
+		// SequenceId is C# Int64 → BSON Int64 → npm bson Long
+		const sequenceId: number = typeof doc.SequenceId === "object"
+			? (doc.SequenceId as BSON.Long).toNumber()
+			: Number(doc.SequenceId);
+		const format: number = doc.Format;
+		const width: number = doc.Width;
+		const height: number = doc.Height;
+		const stride: number = doc.Stride;
+		const dpiX: number = doc.DpiX;
+		const dpiY: number = doc.DpiY;
+		// Data is C# byte[] → BSON Binary → npm bson Binary; .buffer is a Uint8Array
+		const binary: BSON.Binary = doc.Data;
 		const raw = Buffer.from(binary.buffer);
 		return { sequenceId, format, width, height, stride, dpiX, dpiY, data: raw };
 	}
@@ -122,7 +127,7 @@ function getByString(byteArray: any) {
 }
 
 export function readBuffer(buffer: Buffer) {
-	const data = buffer.slice(20);
+	const data = buffer.subarray(20);
 	try {
 		const bson = BSON.deserialize(data);
 		return bson;
@@ -138,9 +143,9 @@ export function typeInfo(guid: string) {
 }
 
 export function adjustGuidBytes(byteArray: Buffer) {
-	byteArray.slice(0, 4).reverse();
-	byteArray.slice(4, 6).reverse();
-	byteArray.slice(6, 8).reverse();
+	byteArray.subarray(0, 4).reverse();
+	byteArray.subarray(4, 6).reverse();
+	byteArray.subarray(6, 8).reverse();
 
 	return byteArray;
 }
@@ -158,14 +163,14 @@ Buffer.prototype.messageSize = function (this: Buffer): number {
 };
 
 Buffer.prototype.messageTypeId = function (this: Buffer): string {
-	const typeBytes = this.slice(4, 20);
+	const typeBytes = this.subarray(4, 20);
 	const typeInfo = adjustGuidBytes(typeBytes);
 	return typeInfo.toString("hex").toUpperCase();
 };
 
 Buffer.prototype.document = function (this: Buffer): BSON.Document {
 	try {
-		const data = this.slice(20);
+		const data = this.subarray(20);
 		const bson = BSON.deserialize(data);
 		return bson;
 	} catch (error: any) {

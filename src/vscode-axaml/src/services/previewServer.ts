@@ -77,8 +77,6 @@ export class PreviewServer implements IPreviewServer {
 			logger.info("Start designer session message received.");
 			socket.write(Messages.clientSupportedPixelFormatsMessage());
 			logger.info("Sent client supported pixel formats.");
-			socket.write(Messages.clientRenderInfoMessage(this._dpiX, this._dpiY));
-			logger.info(`Sent client render info (dpi=${this._dpiX}).`);
 		} else if (type === Messages.frameMessageId) {
 			try {
 				const doc = data.document();
@@ -124,8 +122,6 @@ export class PreviewServer implements IPreviewServer {
 	 * Call this when the user changes the zoom level in TCP mode.
 	 */
 	public sendClientRenderInfo(dpiX: number, dpiY: number) {
-		this._dpiX = dpiX;
-		this._dpiY = dpiY;
 		if (this._socket && !this._socket.destroyed) {
 			this._socket.write(Messages.clientRenderInfoMessage(dpiX, dpiY));
 			logger.info(`Sent client render info (dpiX=${dpiX}, dpiY=${dpiY})`);
@@ -207,8 +203,6 @@ export class PreviewServer implements IPreviewServer {
 	_socketBuffer: Buffer = Buffer.alloc(0);
 	_host = "127.0.0.1";
 	private _isReady = false;
-	private _dpiX = 96.0;
-	private _dpiY = 96.0;
 
 	private static _instance: PreviewServer;
 
