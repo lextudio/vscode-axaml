@@ -15,6 +15,8 @@ export class WebPreviewerPanel {
 	private _isLoading: boolean = false;
 	private _isError: boolean = false;
 	private readonly _mode: "html" | "tcp";
+	/** Device pixel ratio reported by the webview (default 1 until the init message arrives). */
+	private _devicePixelRatio = 1.0;
 
 	private _disposables: vscode.Disposable[] = [];
 
@@ -170,10 +172,16 @@ export class WebPreviewerPanel {
 			this._panel.webview.html = this._getErrorHtml(error);
 		});
 
-		// Handle scale changes from the webview: send new DPI to previewer.
+		// Handle messages from the webview.
 		const msgSub = this._panel.webview.onDidReceiveMessage((msg) => {
-			if (msg.type === "setScale" && typeof msg.scale === "number") {
-				const dpi = 96 * msg.scale;
+			if (msg.type === "init" && typeof msg.devicePixelRatio === "number") {
+				this._devicePixelRatio = msg.devicePixelRatio;
+				// Send native-DPI render info so the first frame is already sharp.
+				const dpi = 96 * this._devicePixelRatio;
+				server.sendClientRenderInfo(dpi, dpi);
+			} else if (msg.type === "setScale" && typeof msg.scale === "number") {
+				// DPI = native DPI × user zoom, so 100 % slider = actual size on screen.
+				const dpi = 96 * this._devicePixelRatio * msg.scale;
 				server.sendClientRenderInfo(dpi, dpi);
 			}
 		});
@@ -305,13 +313,16 @@ export class WebPreviewerPanel {
 	var resetScaleBtn = document.getElementById('resetScaleBtn');
 	var scale = 1.0;
 	var debounceTimer = null;
+	var dpr = window.devicePixelRatio || 1;
+
+	// Tell the extension our display DPI so it requests a correctly sized frame.
+	vscode.postMessage({ type: 'init', devicePixelRatio: dpr });
 
 	function applyScale(newScale) {
 		scale = newScale;
 		scaleLabel.textContent = Math.round(scale * 100) + '%';
 		scaleSlider.value = String(Math.round(scale * 100));
-		// Notify the extension to re-render at the new DPI.
-		// Debounce so rapid slider drags don't flood the previewer.
+		// Debounce rapid slider drags so we don't flood the previewer.
 		clearTimeout(debounceTimer);
 		debounceTimer = setTimeout(function() {
 			vscode.postMessage({ type: 'setScale', scale: scale });
@@ -326,9 +337,13 @@ export class WebPreviewerPanel {
 	window.addEventListener('message', function(event) {
 		var msg = event.data;
 		if (msg.type === 'frame') {
-			// Resize canvas to exact frame dimensions and paint the RGBA pixels.
+			// Paint the pixel buffer at its native resolution.
 			canvas.width = msg.width;
 			canvas.height = msg.height;
+			// Size the CSS box so the content appears at the correct logical scale:
+			// CSS px = physical px / devicePixelRatio, giving "actual size" at 100%.
+			canvas.style.width  = (msg.width  / dpr) + 'px';
+			canvas.style.height = (msg.height / dpr) + 'px';
 			var imageData = new ImageData(new Uint8ClampedArray(msg.rgba), msg.width, msg.height);
 			ctx.putImageData(imageData, 0, 0);
 		}

@@ -63,8 +63,8 @@ export class PreviewServer implements IPreviewServer {
 			if (this._socketBuffer.length < totalLen) {
 				break; // Wait for more data
 			}
-			const message = this._socketBuffer.slice(0, totalLen);
-			this._socketBuffer = this._socketBuffer.slice(totalLen);
+			const message = this._socketBuffer.subarray(0, totalLen);
+			this._socketBuffer = this._socketBuffer.subarray(totalLen);
 			this._handleMessage(socket, message);
 		}
 	}
@@ -77,6 +77,12 @@ export class PreviewServer implements IPreviewServer {
 			logger.info("Start designer session message received.");
 			socket.write(Messages.clientSupportedPixelFormatsMessage());
 			logger.info("Sent client supported pixel formats.");
+			// If the webview already told us the device DPI before the socket connected,
+			// send it now so the very first frame is rendered at the correct resolution.
+			if (this._dpiX !== 96 || this._dpiY !== 96) {
+				socket.write(Messages.clientRenderInfoMessage(this._dpiX, this._dpiY));
+				logger.info(`Sent deferred client render info (dpiX=${this._dpiX}, dpiY=${this._dpiY})`);
+			}
 		} else if (type === Messages.frameMessageId) {
 			try {
 				const doc = data.document();
@@ -119,9 +125,11 @@ export class PreviewServer implements IPreviewServer {
 
 	/**
 	 * Sends a ClientRenderInfoMessage to the previewer, requesting a re-render at the given DPI.
-	 * Call this when the user changes the zoom level in TCP mode.
+	 * If the socket is not yet open, the values are stored and sent when the session starts.
 	 */
 	public sendClientRenderInfo(dpiX: number, dpiY: number) {
+		this._dpiX = dpiX;
+		this._dpiY = dpiY;
 		if (this._socket && !this._socket.destroyed) {
 			this._socket.write(Messages.clientRenderInfoMessage(dpiX, dpiY));
 			logger.info(`Sent client render info (dpiX=${dpiX}, dpiY=${dpiY})`);
@@ -169,7 +177,7 @@ export class PreviewServer implements IPreviewServer {
 		this._socket?.write(updateXamlMessage);
 	}
 
-	sendData(data: Buffer): void {
+	sendData(_data: Buffer): void {
 		logger.info("In PreviewServer.sendData");
 	}
 
@@ -203,8 +211,8 @@ export class PreviewServer implements IPreviewServer {
 	_socketBuffer: Buffer = Buffer.alloc(0);
 	_host = "127.0.0.1";
 	private _isReady = false;
-
-	private static _instance: PreviewServer;
+	private _dpiX = 96.0;
+	private _dpiY = 96.0;
 
 	private static _servers = new Map<string, PreviewServer>();
 }
