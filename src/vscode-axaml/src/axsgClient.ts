@@ -10,7 +10,7 @@
 import * as vscode from "vscode";
 import * as lsp from "vscode-languageclient/node";
 import { getDotnetRuntimePath, getLanguageServerPath } from "./runtimeManager";
-import { logger } from "./util/Utilities";
+import { logger } from "./util/utilities";
 import type {
 	AxsgLanguageService,
 	CacheEntry,

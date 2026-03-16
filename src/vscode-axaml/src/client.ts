@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as lsp from "vscode-languageclient/node";
 import { getDotnetRuntimePath, getLanguageServerPath as getAvaloniaServerPath } from "./runtimeManager";
-import { avaloniaLanguageId, logger } from "./util/Utilities";
+import { avaloniaLanguageId, logger } from "./util/utilities";
 
 export async function createLanguageService(): Promise<lsp.LanguageClient> {
 	logger.info("Creating language service");

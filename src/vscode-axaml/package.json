@@ -3,7 +3,7 @@
   "displayName": "VS Code Tools for AXAML by LeXtudio Inc.",
   "description": "VS Code extension providing AXAML tooling, visual designer and live previewer. Published by LeXtudio Inc.",
   "publisher": "lextudio",
-  "version": "1.0.0",
+  "version": "11.0.57",
   "license": "MIT",
   "preview": true,
   "qna": "false",
@@ -258,7 +258,7 @@
     "menus": {
       "editor/title": [
         {
-          "when": "editorLangId == axaml",
+          "when": "editorLangId == axaml && axaml.conflictDetected != true",
           "command": "axaml.showPreviewToSide",
           "group": "navigation"
         }
@@ -266,7 +266,17 @@
       "commandPalette": [
         {
           "command": "axaml.showPreviewToSide",
-          "when": "resourceLangId == axaml",
+          "when": "resourceLangId == axaml && axaml.conflictDetected != true",
+          "group": "AXAML"
+        },
+        {
+          "command": "axaml.createPreviewerAssets",
+          "when": "axaml.conflictDetected != true",
+          "group": "AXAML"
+        },
+        {
+          "command": "axaml.selectProject",
+          "when": "axaml.conflictDetected != true",
           "group": "AXAML"
         },
         {
@@ -279,12 +289,12 @@
       "editor/context": [
         {
           "command": "axsg.refactor.renameSymbol",
-          "when": "resourceScheme == file && editorLangId == csharp && axsg.active",
+          "when": "resourceScheme == file && editorLangId == csharp && axsg.active && axaml.conflictDetected != true",
           "group": "1_modification@100"
         },
         {
           "command": "axsg.refactor.renameSymbol",
-          "when": "resourceScheme == file && editorLangId == axaml && axsg.active",
+          "when": "resourceScheme == file && editorLangId == axaml && axsg.active && axaml.conflictDetected != true",
           "group": "1_modification@100"
         }
       ]

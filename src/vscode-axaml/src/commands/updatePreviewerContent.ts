@@ -1,15 +1,19 @@
 import * as vscode from "vscode";
 import { Command } from "../commandManager";
-import { AppConstants } from "../util/Constants";
-import * as util from "../util/Utilities";
+import { AppConstants } from "../util/constants";
+import * as util from "../util/utilities";
 import { PreviewServer } from "../services/previewServer";
-import { WebPreviewerPanel } from "../panels/WebPreviewerPanel";
+import { WebPreviewerPanel } from "../panels/webPreviewerPanel";
 
 export class UpdatePreviewerContext implements Command {
 	constructor(private readonly _context: vscode.ExtensionContext) {}
 	public readonly id = AppConstants.updatePreviewerContent;
 
 	public async execute(mainUri?: vscode.Uri, allUris?: vscode.Uri[]) {
+		// Prevent updating preview when conflicting extensions are present
+		if (util.hasConflictingExtensions()) {
+			return;
+		}
 		if (!mainUri) {
 			return;
 		}

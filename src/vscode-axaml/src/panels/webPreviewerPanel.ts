@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import path = require("path");
-import { logger } from "../util/Utilities";
+import { logger } from "../util/utilities";
 import { PreviewProcessManager } from "../previewProcessManager";
 import { PreviewServer } from "../services/previewServer";
 

@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { Command } from "../commandManager";
-import * as util from "../util/Utilities";
-import { PreviewerParams } from "../models/PreviewerParams";
+import * as util from "../util/utilities";
+import { PreviewerParams } from "../models/previewerParams";
 import { spawn } from "child_process";
 
 import * as portfinder from "portfinder";
@@ -9,12 +9,19 @@ import * as fs from "fs";
 import { PreviewerData } from "../models/previewerSettings";
 import { PreviewProcessManager } from "../previewProcessManager";
 import { PreviewServer } from "../services/previewServer";
-import AppConstants from "../util/Constants";
+import AppConstants from "../util/constants";
 
 export class PreviewerProcess implements Command {
 	id: string = AppConstants.previewProcessCommandId;
 
 	async execute(mainUri?: vscode.Uri): Promise<PreviewerData> {
+		// Prevent starting preview when conflicting extensions are present
+		if (util.hasConflictingExtensions()) {
+			vscode.window.showWarningMessage(
+				"Preview is disabled because another AXAML extension is installed. Please uninstall conflicting extensions to enable preview."
+			);
+			return { file: mainUri!, previewerUrl: "", assetsAvailable: false };
+		}
 		util.logger.info(`Command ${this.id}, ${mainUri}`);
 		let result: PreviewerData = { file: mainUri! };
 		const previewParams = this._context.workspaceState.get<PreviewerParams>(AppConstants.previewerParamState);

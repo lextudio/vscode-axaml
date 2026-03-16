@@ -2,8 +2,8 @@ import * as vscode from "vscode";
 import { Command } from "../commandManager";
 import * as sm from "../models/solutionModel";
 import * as sln from "../services/solutionParser";
-import AppConstants from "../util/Constants";
-import { logger } from "../util/Utilities";
+import AppConstants from "../util/constants";
+import { logger, getExecutableProjects } from "../util/utilities";
 
 
 export class SelectAvaloniaProject implements Command {
@@ -12,7 +12,6 @@ export class SelectAvaloniaProject implements Command {
 	async execute(): Promise<void> {
 		await sln.buildSolutionModel(this._context, true);
 		const solutionData = sln.getSolutionModel(this._context);
-		const { getExecutableProjects } = require("../util/Utilities");
 		const projects = getExecutableProjects(solutionData!);
 		let project: sm.Project | undefined = undefined;
 		if (projects.length === 1) {

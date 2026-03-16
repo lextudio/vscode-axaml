@@ -6,10 +6,11 @@ import * as lsp from "vscode-languageclient/node";
 import { createLanguageService } from "./client";
 import { createAxsgLanguageService } from "./axsgClient";
 import type { AxsgLanguageService } from "./axsgTypes";
-import { registerAxamlCommands as registerAxamlCommands } from "./commands";
+import { registerAxamlCommands as registerAxamlCommands, processManager } from "./commands";
+import { WebPreviewerPanel } from "./panels/webPreviewerPanel";
 import { CommandManager } from "./commandManager";
-import * as util from "./util/Utilities";
-import { logger } from "./util/Utilities";
+import * as util from "./util/utilities";
+import { logger } from "./util/utilities";
 import {
 	getLastDiscoveryMeta,
 	buildSolutionModel,
@@ -18,37 +19,121 @@ import {
 	selectSolutionOnActivation,
 	setSelectedSolutionSetting,
 } from "./services/solutionParser";
-import AppConstants from "./util/Constants";
+import AppConstants from "./util/constants";
 
 let languageClient: lsp.LanguageClient | null = null;
 let axsgService: AxsgLanguageService | null = null;
+let _conflictCheckTimer: NodeJS.Timeout | null = null;
+
+// Language status items (module-level so we can hide/show on conflict)
+let modelStatus: vscode.LanguageStatusItem | undefined;
+let solutionStatus: vscode.LanguageStatusItem | undefined;
+let axamlProjectStatusItem: vscode.LanguageStatusItem | undefined;
+const axamlSelector: vscode.DocumentSelector = { language: "axaml", scheme: "file" };
+
+function hideLanguageStatusItems() {
+	if (modelStatus) { modelStatus.selector = []; }
+	if (solutionStatus) { solutionStatus.selector = []; }
+	if (axamlProjectStatusItem) { axamlProjectStatusItem.selector = []; }
+}
+
+function showLanguageStatusItems() {
+	if (modelStatus) { modelStatus.selector = axamlSelector; }
+	if (solutionStatus) { solutionStatus.selector = axamlSelector; }
+	if (axamlProjectStatusItem) { axamlProjectStatusItem.selector = axamlSelector; }
+}
+
+function applyServerSpecificStatusItems(isAxsg: boolean) {
+	// modelStatus (cache readiness) is only meaningful for the AXSG server
+	if (modelStatus) {
+		modelStatus.selector = isAxsg ? axamlSelector : [];
+	}
+}
+
+function checkForConflictingExtensions(context?: vscode.ExtensionContext): boolean {
+	const suppressKey = "axaml.conflictWarnSuppress";
+	if (context && context.globalState.get<boolean>(suppressKey, false)) {
+		// Ensure UI is not hidden if user suppressed warnings
+		void vscode.commands.executeCommand("setContext", "axaml.conflictDetected", false);
+		return false;
+	}
+	const installed = util.conflictingExtensions
+		.map((id) => vscode.extensions.getExtension(id))
+		.filter((ext) => !!ext) as vscode.Extension<any>[];
+	if (installed.length) {
+		const names = installed.map((e) => e.id).join(", ");
+		void vscode.commands.executeCommand("setContext", "axaml.conflictDetected", true);
+		void Promise.resolve(vscode.window
+			.showWarningMessage(
+				`Other AXAML extensions detected (${names}). They may conflict. It is recommended to uninstall them and keep only 'lextudio.vscode-axaml'.`,
+				"Open Extensions",
+				"Don't Show Again"
+			))
+			.then(async (choice) => {
+				if (choice === "Open Extensions") {
+					await vscode.commands.executeCommand(
+						"workbench.extensions.search",
+						"@installed avalonia"
+					);
+				} else if (choice === "Don't Show Again" && context) {
+					await context.globalState.update(suppressKey, true);
+				}
+			})
+			.catch(() => {
+				/* ignore */
+			});
+		return true;
+	}
+	void vscode.commands.executeCommand("setContext", "axaml.conflictDetected", false);
+	return false;
+}
 
 /**
  * @returns undefined when no workspace folders are open.
  */
 export async function activate(context: vscode.ExtensionContext) {
 
-	// Warn about conflicting / legacy extensions that should be uninstalled
-	const conflicting = [
-		"AvaloniaTeam.vscode-avalonia", // legacy / upstream variant
-		"microhobby.vscode-avalonia-community", // community fork
-	];
-	const installedConflicts = conflicting
-		.map((id) => vscode.extensions.getExtension(id))
-		.filter((ext) => !!ext) as vscode.Extension<any>[];
-	if (installedConflicts.length) {
-		const names = installedConflicts.map((e) => e.id).join(", ");
-		const choice = await vscode.window.showWarningMessage(
-			`Other AXAML extensions detected (${names}). They may conflict. It is recommended to uninstall them and keep only 'lextudio.vscode-axaml'.`,
-			"Open Extensions"
-		);
-		if (choice === "Open Extensions") {
-			await vscode.commands.executeCommand(
-				"workbench.extensions.search",
-				"@installed avalonia"
-			);
-		}
-	}
+	// Perform initial conflicting-extension check and register listener
+	checkForConflictingExtensions(context);
+	context.subscriptions.push(
+		vscode.extensions.onDidChange(() => {
+			if (_conflictCheckTimer) {
+				clearTimeout(_conflictCheckTimer);
+			}
+			_conflictCheckTimer = setTimeout(async () => {
+				const has = checkForConflictingExtensions(context);
+				if (has) {
+					try {
+						// Stop language servers
+						await stopActiveLanguageServer();
+					} catch (e) {
+						logger.error(`Failed stopping language server after conflict detected: ${e}`);
+					}
+					try {
+						// Kill preview processes and close preview panel
+						processManager.killPreviewProcess();
+					} catch (e) {
+						logger.error(`Failed killing preview processes after conflict detected: ${e}`);
+					}
+					try {
+						WebPreviewerPanel.currentPanel?.dispose();
+					} catch (e) {
+						logger.error(`Failed closing preview panel after conflict detected: ${e}`);
+					}
+					hideLanguageStatusItems();
+				} else {
+					showLanguageStatusItems();
+					if (!axsgService && !languageClient) {
+						try {
+							await startLanguageServer(context);
+						} catch (e) {
+							logger.error(`Failed starting language server after conflict cleared: ${e}`);
+						}
+					}
+				}
+			}, 500);
+		})
+	);
 
 	// Recommend XAML Styler extension if not installed and user hasn't suppressed recommendation
 	try {
@@ -289,16 +374,15 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(insertCmd);
 
 	// LanguageStatusItem for AXAML files: model readiness
-	const axamlSelector = { language: "axaml", scheme: "file" };
-	const modelStatus = vscode.languages.createLanguageStatusItem(
+	modelStatus = vscode.languages.createLanguageStatusItem(
 		"axaml.modelReadiness",
 		axamlSelector
 	);
 	modelStatus.name = "Model Readiness";
-	context.subscriptions.push(modelStatus);
+	context.subscriptions.push(modelStatus!);
 
 	// LanguageStatusItem for AXAML files: solution selection
-	const solutionStatus = vscode.languages.createLanguageStatusItem(
+	solutionStatus = vscode.languages.createLanguageStatusItem(
 		"axaml.solutionSelection",
 		axamlSelector
 	);
@@ -308,16 +392,16 @@ export async function activate(context: vscode.ExtensionContext) {
 		title: "Select",
 		command: "axaml.selectSolutionFile",
 	};
-	context.subscriptions.push(solutionStatus);
+	context.subscriptions.push(solutionStatus!);
 
 	// Create Language Status Item for AXAML selected project
-	let axamlProjectStatusItem = vscode.languages.createLanguageStatusItem(
+	axamlProjectStatusItem = vscode.languages.createLanguageStatusItem(
 		"axaml.selectedProject",
 		"axaml"
 	);
 	axamlProjectStatusItem.name = "Project";
 	axamlProjectStatusItem.severity = vscode.LanguageStatusSeverity.Information;
-	context.subscriptions.push(axamlProjectStatusItem);
+	context.subscriptions.push(axamlProjectStatusItem!);
 
 	// Helper to update status item
 	function updateAxamlProjectStatus() {
@@ -395,28 +479,34 @@ export async function activate(context: vscode.ExtensionContext) {
 		const solutionModel = getSolutionModel(context);
 		const solutionFileName = getSelectedSolutionFileName();
 		// Model readiness item
-		if (solutionModel) {
-			modelStatus.text = "$(file-media) Cache: Ready";
-			modelStatus.detail = "Completion metadata/cache is ready.";
-			modelStatus.severity = vscode.LanguageStatusSeverity.Information;
-		} else {
-			modelStatus.text = "$(file-media) Cache: Not Ready";
-			modelStatus.detail = "Build the project to enable autocompletion.";
-			modelStatus.severity = vscode.LanguageStatusSeverity.Warning;
+		if (modelStatus) {
+			if (solutionModel) {
+				modelStatus.text = "$(file-media) Cache: Ready";
+				modelStatus.detail = "Completion metadata/cache is ready.";
+				modelStatus.severity = vscode.LanguageStatusSeverity.Information;
+			} else {
+				modelStatus.text = "$(file-media) Cache: Not Ready";
+				modelStatus.detail = "Build the project to enable autocompletion.";
+				modelStatus.severity = vscode.LanguageStatusSeverity.Warning;
+			}
 		}
 		// Solution selection item
-		solutionStatus.text = solutionFileName
-			? `$(file-code) Solution: ${solutionFileName}`
-			: "$(file-code) No solution selected";
+		if (solutionStatus) {
+			solutionStatus.text = solutionFileName
+				? `$(file-code) Solution: ${solutionFileName}`
+				: "$(file-code) No solution selected";
+		}
 
 		// Selected project status item
-		const selected = context.workspaceState.get<any>(
-			AppConstants.selectedExecutableProject
-		);
-		if (selected && selected.name) {
-			axamlProjectStatusItem.text = `$(briefcase) Project: ${selected.name}`;
-		} else {
-			axamlProjectStatusItem.text = "$(briefcase) No project selected";
+		if (axamlProjectStatusItem) {
+			const selected = context.workspaceState.get<any>(
+				AppConstants.selectedExecutableProject
+			);
+			if (selected && selected.name) {
+				axamlProjectStatusItem.text = `$(briefcase) Project: ${selected.name}`;
+			} else {
+				axamlProjectStatusItem.text = "$(briefcase) No project selected";
+			}
 		}
 	}
 
@@ -506,19 +596,14 @@ export async function activate(context: vscode.ExtensionContext) {
 	// React to configuration changes
 	context.subscriptions.push(
 		vscode.workspace.onDidChangeConfiguration(async (e) => {
-			// Server implementation switch -- full teardown and restart
+			// Server implementation switch -- prompt user to reload
 			if (e.affectsConfiguration("axaml.languageServer")) {
-				try {
-					logger.info(
-						"Switching language server implementation..."
-					);
-					await stopActiveLanguageServer();
-					await startLanguageServer(context);
-					logger.info("Language server switched successfully.");
-				} catch (err) {
-					logger.error(
-						`Failed to switch language server: ${err}`
-					);
+				const choice = await vscode.window.showInformationMessage(
+					"The AXAML language server setting has changed. A window reload is required to apply it.",
+					"Reload Window"
+				);
+				if (choice === "Reload Window") {
+					await vscode.commands.executeCommand("workbench.action.reloadWindow");
 				}
 				return;
 			}
@@ -561,6 +646,13 @@ export async function activate(context: vscode.ExtensionContext) {
  * `axaml.languageServer` configuration setting.
  */
 async function startLanguageServer(context: vscode.ExtensionContext) {
+	// If conflicting extensions are present, avoid starting servers.
+	if (checkForConflictingExtensions(context)) {
+		logger.info(
+			"Conflicting AXAML extensions detected; skipping language server start."
+		);
+		return;
+	}
 	const config = vscode.workspace.getConfiguration("axaml");
 	const preferred = config.get<string>(
 		"languageServer",
@@ -585,6 +677,7 @@ async function startLanguageServer(context: vscode.ExtensionContext) {
 			logger.error(`Failed to start AXSG language service. ${error}`);
 			logger.show();
 		}
+		applyServerSpecificStatusItems(true);
 	} else {
 		try {
 			languageClient = await createLanguageService();
@@ -596,6 +689,7 @@ async function startLanguageServer(context: vscode.ExtensionContext) {
 			);
 			logger.show();
 		}
+		applyServerSpecificStatusItems(false);
 	}
 }
 

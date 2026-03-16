@@ -1,5 +1,5 @@
 import * as net from "net";
-import { logger } from "../util/Utilities";
+import { logger } from "../util/utilities";
 import { EventDispatcher, IEvent } from "strongly-typed-events";
 import { Messages } from "./messageParser";
 

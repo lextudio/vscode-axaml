@@ -1,10 +1,10 @@
 import * as vscode from "vscode";
 import { Command } from "../commandManager";
-import { logger } from "../util/Utilities";
+import { logger } from "../util/utilities";
 import { PreviewerData, ShowPreviewSettings } from "../models/previewerSettings";
 import { PreviewProcessManager } from "../previewProcessManager";
-import { WebPreviewerPanel } from "../panels/WebPreviewerPanel";
-import AppConstants from "../util/Constants";
+import { WebPreviewerPanel } from "../panels/webPreviewerPanel";
+import AppConstants from "../util/constants";
 
 export class ShowPreviewToSideCommand implements Command {
 	constructor(

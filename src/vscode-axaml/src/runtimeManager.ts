@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
-import { logger } from "./util/Utilities";
-import AppConstants from "./util/Constants";
+import { logger } from "./util/utilities";
+import AppConstants from "./util/constants";
 
 /**
  * The .NET major version to acquire. Change to 10.0 to request .NET 10.

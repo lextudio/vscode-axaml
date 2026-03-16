@@ -1,14 +1,14 @@
 import * as vscode from "vscode";
 import { CommandManager } from "../commandManager";
-import { ShowPreviewToSideCommand } from "./ShowPreviewToSideCommand";
+import { ShowPreviewToSideCommand } from "./showPreviewToSideCommand";
 import { CreatePreviewerAssets } from "./createPreviewerAssets";
 import { PreviewerProcess } from "./previewerProcess";
 import { PreviewProcessManager } from "../previewProcessManager";
 import { UpdatePreviewerContext } from "./updatePreviewerContent";
 import { CreateNewProject } from "./createNewProject";
-import { SelectAvaloniaProject } from "./SelectAvaloniaProject";
+import { SelectAvaloniaProject } from "./selectAvaloniaProject";
 
-const processManager = new PreviewProcessManager();
+export const processManager = new PreviewProcessManager();
 
 export function registerAxamlCommands(
 	commandManager: CommandManager,

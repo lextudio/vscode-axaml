@@ -2,12 +2,27 @@ import path = require("path");
 import * as vscode from "vscode";
 import * as sm from "../models/solutionModel";
 import { getSolutionModel } from "../services/solutionParser";
-import AppConstants from "./Constants";
+import AppConstants from "./constants";
 
 // TODO:move const strings to Constants
 export const avaloniaFileExtension = "axaml";
 export const avaloniaLanguageId = "axaml";
 export const logger = vscode.window.createOutputChannel("AXAML Client", { log: true });
+
+// Known conflicting / legacy AXAML extensions
+export const conflictingExtensions = [
+	"AvaloniaTeam.vscode-avalonia",
+	"microhobby.vscode-avalonia-community",
+	"xamltocsharpgenerator.axsg-language-server",
+];
+
+export function hasConflictingExtensions(): boolean {
+	return (
+		conflictingExtensions
+			.map((id) => vscode.extensions.getExtension(id))
+			.filter((ext) => !!ext).length > 0
+	);
+}
 
 /**
  * Checks if the given document is an Avalonia file.
