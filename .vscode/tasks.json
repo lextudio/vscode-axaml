@@ -73,6 +73,18 @@
                 "${workspaceFolder}/src/vscode-axaml/solutionParserTool"
             ],
             "problemMatcher": "$msCompile"
-    }
+        },
+        {
+            "label": "Install AXSG Dependencies",
+            "command": "npm",
+            "args": [
+                "install"
+            ],
+            "type": "shell",
+            "problemMatcher": [],
+            "options": {
+                "cwd": "${workspaceFolder}/src/XamlToCSharpGenerator/tools/vscode/axsg-language-server"
+            }
+        }
     ]
 }

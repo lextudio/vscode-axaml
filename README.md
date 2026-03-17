@@ -106,6 +106,26 @@ The AXAML files in the VS Code are showed with document outlines, allowing you t
 >
 > You can report directly to [this repo](https://github.com/wieslawsoltes/XamlToCSharpGenerator/issues).
 
+#### Feature Comparison
+
+This includes a short feature comparison between the two language servers shipped with the extension.
+
+| Feature | AxamlLanguageServer | AXSG/XamlToCSharpGenerator (default) |
+|---|---|---|
+| Completion | Yes — engine-backed, lightweight; initializes metadata from project assembly when available | Yes — richer, project/semantic-aware completions via language service |
+| Hover / Quick info | Yes (standard handlers) | Yes (semantic, can include generated C# projection data) |
+| Document symbols / outline | Yes (`DocumentSymbolHandler`, XmlOutlineHelper) | Yes (semantic model-driven symbols) |
+| Go-to-definition / References / Rename | Basic go-to (file-level/project metadata dependent) | Full project-aware navigation, references, rename/refactor support via Roslyn integration |
+| Semantic tokens | Not primary; basic syntax features provided | Supported (semantic engine provides richer tokens/semantic coloring) |
+| Inline C# projection | No (focuses on AXAML editing) | Supported (projects show inline C# projection / mapping in some flows) |
+| Code generation (XAML→C#) | Not core responsibility (editor assistance only) | Core capability (Xaml→C# generator toolchain integrated) |
+| Project awareness | Limited (reads simple project metadata / assembly) | High (MSBuild/Roslyn-aware, works with full project model) |
+| Footprint / startup | Lightweight, smaller binary set | Heavier — many assemblies, larger runtime requirements |
+| Runtime requirements | .NET runtime (packaged .dll under `axamlServer`) | .NET runtime + MSBuild/Roslyn runtime pieces; recommended as installed tool or packaged `axsgServer` |
+| Update path / extensibility | Source present in repo — easy to modify and rebuild | Packaged binaries shipped with extension; source available in `XamlToCSharpGenerator/` but typically published as artifacts |
+| Typical use-case | Fast editor features for AXAML editing; easy to inspect and patch | Deep project-aware language service, codegen, and advanced refactor/navigation |
+| Status | Stable | Early preview (expect warnings, some instability, etc.) |
+
 ### Release Notes
 
 Detailed information can be found on [this page](https://marketplace.visualstudio.com/items/lextudio.vscode-axaml/changelog).

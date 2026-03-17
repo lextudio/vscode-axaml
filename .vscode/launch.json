@@ -10,7 +10,7 @@
             "outFiles": [
                 "${workspaceFolder}/src/vscode-axaml/out/**/*.js"
             ],
-            "preLaunchTask": "Build Extension",
+            "preLaunchTask": "Build AXSG Extension",
             "sourceMaps": true,
         },
         {
@@ -25,6 +25,32 @@
             ],
             "preLaunchTask": "Only Extension",
             "sourceMaps": true,
+        },
+        {
+            "name": "Launch AXSG Extension",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/src/XamlToCSharpGenerator/tools/vscode/axsg-language-server"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/src/XamlToCSharpGenerator/tools/vscode/axsg-language-server/**/*.js"
+            ],
+            "preLaunchTask": "Install AXSG Dependencies",
+            "sourceMaps": true
+        },
+        {
+            "name": "Only AXSG Extension",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/src/XamlToCSharpGenerator/tools/vscode/axsg-language-server"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/src/XamlToCSharpGenerator/tools/vscode/axsg-language-server/**/*.js"
+            ],
+            "preLaunchTask": "Install AXSG Dependencies",
+            "sourceMaps": true
         },
     ]
 }
