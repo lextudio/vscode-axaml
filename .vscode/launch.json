@@ -10,7 +10,7 @@
             "outFiles": [
                 "${workspaceFolder}/src/vscode-axaml/out/**/*.js"
             ],
-            "preLaunchTask": "Build AXSG Extension",
+            "preLaunchTask": "Build Extension",
             "sourceMaps": true,
         },
         {
