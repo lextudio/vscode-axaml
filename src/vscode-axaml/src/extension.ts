@@ -95,6 +95,35 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// Perform initial conflicting-extension check and register listener
 	checkForConflictingExtensions(context);
+
+	// Simple AXSG-specific notice (separate from legacy conflict handling)
+	try {
+		if (util.isAxsgInstalled()) {
+			const axsgSuppressKey = "axaml.axsgNoticeSuppress";
+			if (!context.globalState.get<boolean>(axsgSuppressKey, false)) {
+				const marketplaceUrl = `https://marketplace.visualstudio.com/items?itemName=${util.axsgExtensionId}`;
+				const choice = await vscode.window.showInformationMessage(
+					"AXSG extension supersedes this extension. If you only want AXSG, you can uninstall this one.",
+					"Uninstall this",
+					"Open AXSG page",
+					"Don't Show Again"
+				);
+				if (choice === "Uninstall this") {
+					try {
+						await vscode.commands.executeCommand("workbench.extensions.uninstallExtension", "lextudio.vscode-axaml");
+					} catch (err) {
+						logger.error(`Failed to uninstall extension lextudio.vscode-axaml: ${err}`);
+					}
+				} else if (choice === "Open AXSG page") {
+					await vscode.env.openExternal(vscode.Uri.parse(marketplaceUrl));
+				} else if (choice === "Don't Show Again") {
+					await context.globalState.update(axsgSuppressKey, true);
+				}
+			}
+		}
+	} catch (e) {
+		logger.error(`Failed checking AXSG installation: ${e}`);
+	}
 	context.subscriptions.push(
 		vscode.extensions.onDidChange(() => {
 			if (_conflictCheckTimer) {

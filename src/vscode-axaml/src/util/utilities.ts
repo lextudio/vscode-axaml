@@ -16,6 +16,13 @@ export const conflictingExtensions = [
 	"xamltocsharpgenerator.axsg-language-server",
 ];
 
+// Modern AXSG extension id (handled separately from legacy conflicts)
+export const axsgExtensionId = "wieslawsoltes.axsg-language-server";
+
+export function isAxsgInstalled(): boolean {
+    return !!vscode.extensions.getExtension(axsgExtensionId);
+}
+
 export function hasConflictingExtensions(): boolean {
 	return (
 		conflictingExtensions
