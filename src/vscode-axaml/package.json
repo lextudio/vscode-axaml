@@ -35,9 +35,7 @@
     "url": "https://github.com/lextudio/vscode-axaml"
   },
   "activationEvents": [
-    "workspaceContains:**/*.axaml",
-    "onLanguage:axaml",
-    "onCommand:axsg.refactor.renameSymbol"
+    "workspaceContains:**/*.axaml"
   ],
   "main": "./out/extension.js",
   "contributes": {

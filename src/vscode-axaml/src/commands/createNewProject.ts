@@ -34,7 +34,7 @@ export class CreateNewProject implements Command {
 
 		if (projectPath.trim() === "") {
 			vscode.window.showErrorMessage(
-				"Failed to create project. Make sure you have Avalonia Project Templates installed. [Learn More](https://docs.avaloniaui.net/docs/next/get-started/install)"
+				"Failed to create project. Make sure you have Avalonia Project Templates installed. [Learn More](https://docs.avaloniaui.net/docs/get-started/install-avalonia#install-the-avalonia-templates)"
 			);
 			return;
 		}
