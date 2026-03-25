@@ -19,20 +19,6 @@ rm -f README.md LICENSE
 cp "$ROOT_DIR/README.md" README.md
 cp "$ROOT_DIR/LICENSE" LICENSE
 
-# Build server & tools (expects user to have run dotnet restore earlier)
-echo "Building language server + solution parser (Release)..."
-# Build new XamlToCSharpGenerator language server into axsgServer (keep old AxamlLanguageServer in axamlServer)
-if [ -f "$ROOT_DIR/src/XamlToCSharpGenerator/XamlToCSharpGenerator.csproj" ]; then
-	mkdir -p "$EXT_DIR/axsgServer"
-	dotnet build "$ROOT_DIR/src/XamlToCSharpGenerator/XamlToCSharpGenerator.csproj" -c Release --nologo --output "$EXT_DIR/axsgServer"
-fi
-
-if [ -f "$ROOT_DIR/src/AxamlLSP/AxamlLanguageServer/AxamlLanguageServer.csproj" ]; then
-	mkdir -p "$EXT_DIR/axamlServer"
-	dotnet build "$ROOT_DIR/src/AxamlLSP/AxamlLanguageServer/AxamlLanguageServer.csproj" -c Release --nologo --output "$EXT_DIR/axamlServer"
-fi
-dotnet build "$ROOT_DIR/src/SolutionParser/SolutionParser.csproj" -c Release --nologo --output "$EXT_DIR/solutionParserTool"
-
 echo "Building & bundling extension (TypeScript via esbuild)..."
 npm install
 npm run bundle

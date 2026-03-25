@@ -26,10 +26,10 @@
                 "cwd": "${workspaceFolder}/src/vscode-axaml"
             },
         },
-        {
+                {
             "label": "Build Extension",
             "command": "npm",
-            "args": [
+                    "args": [
                 "run",
                 "compile"
             ],
@@ -39,22 +39,22 @@
                 "cwd": "${workspaceFolder}/src/vscode-axaml"
             },
             "dependsOn": [
-                "Build LSP Server",
-                "Build Solution Parser"
+                "Build AXSG Language Server",
+                "Build Solution Parser",
+                "Build Axaml Language Server"
             ]
         },
         
         {
-            "label": "Build LSP Server",
+            "label": "Build AXSG Language Server",
             "command": "dotnet",
             "type": "process",
             "args": [
-                "build",
-                "${workspaceFolder}/src/XamlToCSharpGenerator/src/XamlToCSharpGenerator/XamlToCSharpGenerator.csproj",
-                "/property:GenerateFullPaths=true",
-                "/consoleloggerparameters:NoSummary",
-                "/property:Configuration=Release",
-                "--output",
+                "publish",
+                "${workspaceFolder}/src/XamlToCSharpGenerator/src/XamlToCSharpGenerator.LanguageServer/XamlToCSharpGenerator.LanguageServer.csproj",
+                "-c",
+                "Release",
+                "-o",
                 "${workspaceFolder}/src/vscode-axaml/axsgServer"
             ],
             "problemMatcher": "$msCompile"
@@ -85,6 +85,20 @@
             "options": {
                 "cwd": "${workspaceFolder}/src/XamlToCSharpGenerator/tools/vscode/axsg-language-server"
             }
+        },
+        {
+            "label": "Build Axaml Language Server",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "publish",
+                "${workspaceFolder}/src/AxamlLSP/AxamlLanguageServer/AxamlLanguageServer.csproj",
+                "-c",
+                "Release",
+                "-o",
+                "${workspaceFolder}/src/vscode-axaml/axamlServer"
+            ],
+            "problemMatcher": "$msCompile"
         }
     ]
 }

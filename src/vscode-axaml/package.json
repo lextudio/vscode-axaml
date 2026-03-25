@@ -3,7 +3,7 @@
   "displayName": "VS Code Tools for AXAML by LeXtudio Inc.",
   "description": "VS Code extension providing AXAML tooling, visual designer and live previewer. Published by LeXtudio Inc.",
   "publisher": "lextudio",
-  "version": "11.0.60",
+  "version": "11.0.61-2",
   "license": "MIT",
   "preview": true,
   "qna": "false",
@@ -466,7 +466,7 @@
   },
   "scripts": {
     "install:all": "npm install",
-    "vscode:prepublish": "npm run bundle",
+    "vscode:prepublish": "npm run bundle && node ./scripts/prepackage.js",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",

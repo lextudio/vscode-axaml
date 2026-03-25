@@ -1,5 +1,17 @@
 # Change Log
 
+## [11.0.61] - 24 March 2026
+
+Highlights:
+
+- Fixed packaging issue.
+
+## [11.0.60] - 22 March 2026
+
+Highlights:
+
+- Updated AXSG language server to latest, with improved AXAML-specific features and stability.
+
 ## [11.0.59] - 16 March 2026
 
 Highlights:
