@@ -1,5 +1,11 @@
 # Change Log
 
+## [11.0.62] - 25 March 2026
+
+Highlights:
+
+- Updated AXSG language server to latest.
+
 ## [11.0.61] - 24 March 2026
 
 Highlights:
