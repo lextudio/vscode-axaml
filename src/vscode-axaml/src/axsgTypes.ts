@@ -54,7 +54,7 @@ export interface ServerStartupDetails {
 	args: string[];
 }
 
-export type StatusBarState = "idle" | "starting" | "running" | "error";
+export type StatusBarState = "idle" | "starting" | "building" | "running" | "error";
 
 export interface ProtocolWorkspaceEdit {
 	changes?: Record<string, ProtocolTextEdit[]>;

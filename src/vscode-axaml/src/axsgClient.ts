@@ -1163,6 +1163,8 @@ function setStatusBarState(state: StatusBarState, details: ServerStartupDetails,
 	}
 	if (state === "starting") {
 		statusBarItem.text = "$(sync~spin) AXSG";
+	} else if (state === "building") {
+		statusBarItem.text = "$(sync~spin) AXSG";
 	} else if (state === "running") {
 		statusBarItem.text = "$(info) AXSG";
 	} else if (state === "idle") {
@@ -1322,6 +1324,35 @@ async function ensureClientStarted(
 		try {
 			await startingClient.start();
 			setStatusBarState("running", startupDetails!);
+
+			// Listen for cache-building status from the server.
+			// "building" → show progress toast while Tier-2 prewarm runs.
+			// "ready"    → dismiss the toast and restore normal status bar.
+			let cacheProgressResolve: (() => void) | undefined;
+			startingClient.onNotification(
+				"axsg/cacheStatus",
+				(params: { phase: string; version: string }) => {
+					if (params.phase === "building") {
+						setStatusBarState("building", startupDetails!);
+						vscode.window.withProgress(
+							{ location: vscode.ProgressLocation.Notification, cancellable: false },
+							async (progress) => {
+								progress.report({
+									message: `Building Avalonia ${params.version} completion cache…`,
+								});
+								await new Promise<void>((resolve) => {
+									cacheProgressResolve = resolve;
+								});
+							}
+						);
+					} else if (params.phase === "ready") {
+						cacheProgressResolve?.();
+						cacheProgressResolve = undefined;
+						setStatusBarState("running", startupDetails!);
+					}
+				}
+			);
+
 			return startingClient;
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
