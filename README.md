@@ -1,8 +1,9 @@
 # VSCode Tools for AXAML from LeXtudio Inc.
 
-[![VS Code Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/lextudio.vscode-axaml?label=Version)](https://marketplace.visualstudio.com/items?itemName=lextudio.vscode-axaml)
-[![Installs](https://img.shields.io/visual-studio-marketplace/i/lextudio.vscode-axaml?label=Installs)](https://marketplace.visualstudio.com/items?itemName=lextudio.vscode-axaml)
-[![Downloads](https://img.shields.io/visual-studio-marketplace/d/lextudio.vscode-axaml?label=Downloads)](https://marketplace.visualstudio.com/items?itemName=lextudio.vscode-axaml)
+[![Become a Sponsor](https://img.shields.io/badge/Become%20a%20Sponsor-lextudio-orange.svg?style=for-readme)](https://github.com/sponsors/lextudio)
+[![Version](https://vsmarketplacebadges.dev/version/lextudio.vscode-axaml.svg)](https://marketplace.visualstudio.com/items?itemName=lextudio.vscode-axaml)
+[![Installs](https://vsmarketplacebadges.dev/installs-short/lextudio.vscode-axaml.svg)](https://marketplace.visualstudio.com/items?itemName=lextudio.vscode-axaml)
+[![Downloads](https://vsmarketplacebadges.dev/downloads-short/lextudio.vscode-axaml.svg)](https://marketplace.visualstudio.com/items?itemName=lextudio.vscode-axaml)
 
 [Avalonia](https://github.com/AvaloniaUI/Avalonia/) is a cross-platform XAML-based UI framework providing a flexible styling system and supporting a wide range of Operating Systems such as Windows via .NET Framework and .NET Core, Linux via Xorg and macOS. AXAML is a XAML variant used by this framework to define user interfaces in a declarative way.
 
